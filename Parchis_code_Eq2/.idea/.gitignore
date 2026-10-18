@@ -1,0 +1,43 @@
+# ==========================================
+# Archivos de compilación y salida de Java
+# ==========================================
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# Carpetas de salida según el IDE o Tool de Build
+bin/
+out/
+target/
+build/
+
+# ==========================================
+# Configuración del IDE (IntelliJ / NetBeans / Eclipse)
+# ==========================================
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Archivos de espacio de trabajo de IntelliJ (de tu gitignore actual)
+/shelf/
+/workspace.xml
+/httpRequests/
+/queries/
+/dataSources/
+/dataSources.local.xml
+
+# Eclipse & NetBeans
+.metadata/
+.classpath
+.project
+.settings/
+nbproject/private/
+
+# ==========================================
+# Archivos del Sistema Operativo
+# ==========================================
+.DS_Store
+Thumbs.db
