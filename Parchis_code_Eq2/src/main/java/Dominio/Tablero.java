@@ -6,28 +6,30 @@ import java.util.List;
 
 /**
  * Representa el tablero principal del juego de Parchís.
- * Mantiene la lista de casillas que componen el circuito y gestiona
- * la lógica de trayectorias, movimientos, rebotes en meta y capturas de fichas.
+ * Mantiene la colección de casillas que componen el circuito y gestiona
+ * la lógica de desplazamientos, detección de barreras, rebotes en la meta,
+ * incorporación de fichas desde la base y evaluación de casillas de destino.
  *
  * @author Equipo 2
  */
 public class Tablero {
 
-    /** Identificador único del tablero. */
+    /** Identificador único del tablero en la base de datos. */
     private Long idTablero;
 
-    /** Número obtenido en el dado requerido para poder sacar una ficha de la base. */
+    /** Número obtenido en el dado requerido para sacar una ficha de la base. */
     private int numeroSalidaBase;
 
     /** Colección de casillas que forman la estructura completa del tablero. */
     private List<Casilla> casillas;
 
-
     /**
-     * Constructor por defecto. Inicializa la lista de casillas del tablero.
+     * Constructor por defecto. Inicializa la lista de casillas y establece el
+     * número de salida de base en 5 por defecto.
      */
     public Tablero() {
         this.casillas = new ArrayList<>();
+        this.numeroSalidaBase = 5;
     }
 
     /**
@@ -39,12 +41,8 @@ public class Tablero {
     public Tablero(Long idTablero, List<Casilla> casillas) {
         this.idTablero = idTablero;
         this.casillas = casillas;
+        this.numeroSalidaBase = 5;
     }
-
-
-    // =========================================================================
-    // GETTERS Y SETTERS
-    // =========================================================================
 
     /**
      * Obtiene el identificador único del tablero.
@@ -56,7 +54,7 @@ public class Tablero {
     }
 
     /**
-     * Asigna o modifica el identificador del tablero.
+     * Asigna o actualiza el identificador único del tablero.
      *
      * @param idTablero Nuevo ID a establecer.
      */
@@ -65,18 +63,18 @@ public class Tablero {
     }
 
     /**
-     * Obtiene la lista de casillas que componen el tablero.
+     * Obtiene la lista de casillas que conforman el circuito del tablero.
      *
-     * @return Lista de casillas.
+     * @return Lista de objetos {@link Casilla}.
      */
     public List<Casilla> getCasillas() {
         return casillas;
     }
 
     /**
-     * Asigna la lista de casillas que conforman el tablero.
+     * Asigna o actualiza la lista de casillas del tablero.
      *
-     * @param casillas Nueva lista de casillas.
+     * @param casillas Nueva lista de casillas a establecer.
      */
     public void setCasillas(List<Casilla> casillas) {
         this.casillas = casillas;
@@ -92,40 +90,31 @@ public class Tablero {
     }
 
     /**
-     * Define el número necesario en el dado para sacar una ficha de la base.
+     * Define el número necesario en el dado para incorporar una ficha al tablero.
      *
-     * @param numeroSalidaBase Valor configurado para salir de base.
+     * @param numeroSalidaBase Valor configurado para salir de la base.
      */
     public void setNumeroSalidaBase(int numeroSalidaBase) {
         this.numeroSalidaBase = numeroSalidaBase;
     }
 
-    // =========================================================================
-    // MÉTODOS DE LA CLASE
-    // =========================================================================
-
     /**
-     * Revisa casilla por casilla en el recorrido para asegurar que no haya ninguna barrera activa.
+     * Revisa casilla por casilla en el recorrido para asegurar que no exista ninguna barrera activa
+     * en las casillas intermedias del avance.
      *
-     * @param ficha Ficha que se moverá.
-     * @param valorDado Cantidad de casillas a consultar hacia adelante.
-     * @return {@code true} si todas las casillas intermedias están libres, {@code false} si hay barrera.
+     * @param ficha Ficha que realizará el movimiento.
+     * @param valorDado Cantidad de posiciones a avanzar según el dado.
+     * @return {@code true} si la trayectoria está libre, {@code false} si se encuentra un bloqueo.
      */
     public boolean verificarTrayectoriaLibre(Ficha ficha, int valorDado) {
         if (casillas.isEmpty() || ficha.getCasillaActual() == null) {
             return true;
         }
 
-        int posicionActual = casillas.indexOf(ficha.getCasillaActual()); //guardamos la posicion actial de la ficha
+        int posicionActual = casillas.indexOf(ficha.getCasillaActual());
 
-        //revisando casilla por casilla
-        for (int i = 1; i < valorDado; i++) { //ignoramos la casilla actual (0) y pasamos por cada casilla siguientes
-            int siguientePosicion = posicionActual + i;
-
-            // Si la posición se pasa del tamaño total del tablero, le restamos el total para volver a empezar desde 0
-            if (siguientePosicion >= casillas.size()) {
-                siguientePosicion = siguientePosicion - casillas.size();
-            }
+        for (int i = 1; i < valorDado; i++) {
+            int siguientePosicion = (posicionActual + i) % casillas.size();
             Casilla casillaIntermedia = casillas.get(siguientePosicion);
 
             if (casillaIntermedia.isHayBarrera()) {
@@ -136,11 +125,10 @@ public class Tablero {
     }
 
     /**
-     * Metodo principal que coordina el turno de avance de una ficha.
-     * Verifica que el camino esté libre antes de mover la ficha.
+     * Coordina el avance general de la ficha comprobando previamente que la trayectoria esté libre.
      *
-     * @param ficha Ficha que se desea mover.
-     * @param valorDado Puntos obtenidos en el dado.
+     * @param ficha Ficha que se desea desplazar.
+     * @param valorDado Cantidad de casillas a mover.
      */
     public void procesarAvance(Ficha ficha, int valorDado) {
         if (verificarTrayectoriaLibre(ficha, valorDado)) {
@@ -151,25 +139,23 @@ public class Tablero {
     }
 
     /**
-     * Aplica la regla de rebote cuando una ficha en el pasillo supera las casillas necesarias para la meta.
+     * Aplica la regla de rebote cuando una ficha en el pasillo final supera las casillas exactas para la meta.
      *
-     * @param ficha Ficha en movimiento.
-     * @param valorDado Puntos del dado.
+     * @param ficha Ficha en el pasillo de meta.
+     * @param valorDado Puntos del dado a aplicar.
      */
     public void aplicarMovimientoConRebote(Ficha ficha, int valorDado) {
         if (ficha.getEstado() == EstadoFicha.EN_PASILLO) {
-            int limiteMeta = 7; //NUMERO DE CASILLAS DE PASILLO
+            int limiteMeta = 7;
             int pasosFaltantes = limiteMeta - ficha.getPasosDados();
 
-            if (valorDado > pasosFaltantes) { //aqui es cuando aplica el rebote
-                int exceso = valorDado - pasosFaltantes; //calcula la cantidad de pasos que se paso
-                int nuevaPosicion = limiteMeta - exceso; //se los resta al limite(rebote)
-                ficha.setPasosDados(nuevaPosicion); //actualizas los pasos dados
-
-            } else if (valorDado == pasosFaltantes) { //si da exacto el numero a la meta
+            if (valorDado > pasosFaltantes) {
+                int exceso = valorDado - pasosFaltantes;
+                int nuevaPosicion = limiteMeta - exceso;
+                ficha.setPasosDados(nuevaPosicion);
+            } else if (valorDado == pasosFaltantes) {
                 ficha.setPasosDados(limiteMeta);
                 moverAMeta(ficha);
-
             } else {
                 ficha.setPasosDados(ficha.getPasosDados() + valorDado);
             }
@@ -177,29 +163,29 @@ public class Tablero {
     }
 
     /**
-     * Calcula la nueva posición de la ficha en la lista de casillas y realiza el avance
-     * según su estado actual (BASE, TABLERO, PASILLO).
+     * Desplaza la ficha a lo largo del juego según su estado actual (EN_BASE, EN_TABLERO o EN_PASILLO).
      *
-     * @param ficha Ficha a desplazar.
-     * @param pasosAvanzar Puntos a recorrer obtenidos del dado.
+     * @param ficha Ficha que realizará el movimiento.
+     * @param pasosAvanzar Cantidad de posiciones a desplazar.
      */
-        public void moverFicha(Ficha ficha, int pasosAvanzar) {
+    public void moverFicha(Ficha ficha, int pasosAvanzar) {
         if (ficha == null || ficha.getEstado() == EstadoFicha.EN_META) {
-            System.out.println("La ficha ya se encuentra en la meta o es nula.");
             return;
         }
 
         switch (ficha.getEstado()) {
             case EN_BASE:
                 if (pasosAvanzar == numeroSalidaBase) {
-                    salirDeBase(ficha);
-                } else {
-                    System.out.println("Se requiere un " + numeroSalidaBase + " en el dado para sacar una ficha de la base.");
+                    incorporarFichaAlTablero(ficha);
                 }
                 break;
 
             case EN_TABLERO:
-                avanzarEnTablero(ficha, pasosAvanzar);
+                Casilla casillaDestino = calcularPosicion(ficha, pasosAvanzar);
+                if (casillaDestino != null) {
+                    actualizarPosicion(ficha, casillaDestino);
+                    evaluarCasillaDestino(casillaDestino, ficha);
+                }
                 break;
 
             case EN_PASILLO:
@@ -212,156 +198,137 @@ public class Tablero {
     }
 
     /**
-     * Marca la ficha con el estado EN_META.
+     * Saca la ficha de la base y la ubica en la casilla de salida correspondiente,
+     * actualizando su estado a EN_TABLERO.
      *
-     * @param fichaLlegada Ficha que alcanza la meta.
+     * @param ficha Ficha que abandona la base.
+     */
+    public void incorporarFichaAlTablero(Ficha ficha) {
+        if (ficha == null) return;
+        CasillaSalida casillaSalida = obtenerCasillaSalida(ficha);
+
+        if (casillaSalida != null && verificarCasillaSalida(ficha)) {
+            actualizarPosicion(ficha, casillaSalida);
+            ficha.cambiarEstado(EstadoFicha.EN_TABLERO);
+            casillaSalida.getFichas().add(ficha);
+        }
+    }
+
+    /**
+     * Registra el arribo de una ficha a la casilla de meta, cambiando su estado
+     * y removiendo su asignación de casilla.
+     *
+     * @param fichaLlegada Ficha que alcanzó la meta.
      */
     public void moverAMeta(Ficha fichaLlegada) {
         if (fichaLlegada == null) return;
-
         fichaLlegada.cambiarEstado(EstadoFicha.EN_META);
         fichaLlegada.cambiarPosicion(null);
     }
 
     /**
-     * Devuelve la ficha a la base y reinicia sus contadores.
+     * Envía la ficha indicada de regreso a la base inicial y reinicia su conteo de pasos.
      *
-     * @param ficha Ficha capturada.
+     * @param ficha Ficha que retornará a la base.
      */
     public void regresarFichaBase(Ficha ficha) {
+        if (ficha == null) return;
         ficha.cambiarEstado(EstadoFicha.EN_BASE);
         ficha.cambiarPosicion(null);
         ficha.setPasosDados(0);
     }
 
     /**
-     * Evalúa las reglas del juego en la casilla de destino (capturas, barreras o meta).
+     * Evalúa las reglas del juego en la casilla de llegada (capturas de fichas enemigas,
+     * formación de barreras o ingreso a la meta).
      *
      * @param casillaDestino Casilla a la que llegó la ficha.
-     * @param fichaMoviendose Ficha que realizó el avance.
+     * @param fichaMoviendose Ficha que realizó el desplazamiento.
      */
     public void evaluarCasillaDestino(Casilla casillaDestino, Ficha fichaMoviendose) {
-        if (casillaDestino == null || fichaMoviendose == null) {
-            return;
-        }
+        if (casillaDestino == null || fichaMoviendose == null) return;
 
-        // Obtiene las fichas que se encuentran actualmente en la casilla
         List<Ficha> fichasEnCasilla = casillaDestino.getFichas();
 
-        // CASO 1: Llegada a la Meta
         if (casillaDestino instanceof CasillaMeta) {
-            moverAMeta(fichaMoviendose); // Se cambia el estado de la ficha a EN_META
-            fichasEnCasilla.add(fichaMoviendose); // Se agrega la ficha a la casilla de meta
-            System.out.println("¡La ficha ha alcanzado la meta!");
+            moverAMeta(fichaMoviendose);
+            fichasEnCasilla.add(fichaMoviendose);
             return;
         }
 
-        // CASO 2: Casilla Segura o Casilla de Salida (No se capturan fichas)
         if (casillaDestino instanceof CasillaSegura || casillaDestino instanceof CasillaSalida) {
             if (!fichasEnCasilla.isEmpty()) {
-                casillaDestino.setHayBarrera(true); // Cambiar el estado de la casilla evaluada a que hay barrera
+                casillaDestino.setHayBarrera(true);
             }
-            fichasEnCasilla.add(fichaMoviendose); // Agregamos la ficha a la lista de fichas de la casilla
+            fichasEnCasilla.add(fichaMoviendose);
             return;
         }
 
-        // CASO 3: Casilla Normal
         if (casillaDestino instanceof CasillaNormal) {
             if (fichasEnCasilla.isEmpty()) {
-                fichasEnCasilla.add(fichaMoviendose); // Si no hay fichas en la casilla, la agregamos directamente
+                fichasEnCasilla.add(fichaMoviendose);
                 return;
             }
 
-            Ficha fichaExistente = fichasEnCasilla.get(0); // Ficha que ya estaba en la casilla de destino
-
-            if (esFichaEnemiga(fichaMoviendose, fichaExistente)) { // Si la ficha que está en el destino es enemiga
-                regresarFichaBase(fichaExistente); // Nos comemos la ficha
-                fichasEnCasilla.remove(fichaExistente); // Quitamos la ficha que nos comimos de la casilla
-
-                fichasEnCasilla.add(fichaMoviendose); // Agregamos la ficha en turno a la casilla
-                System.out.println("¡Se ha capturado una ficha enemiga! Regresa a la base.");
-            } else {
-                // Cuando la ficha existente es tuya
+            Ficha fichaExistente = fichasEnCasilla.get(0);
+            if (!fichaExistente.getIdFicha().equals(fichaMoviendose.getIdFicha())) {
+                regresarFichaBase(fichaExistente);
+                fichasEnCasilla.remove(fichaExistente);
                 fichasEnCasilla.add(fichaMoviendose);
-                casillaDestino.setHayBarrera(true); // Aplicamos la barrera
-                System.out.println("Se ha formado una barrera con tu ficha aliada.");
+            } else {
+                fichasEnCasilla.add(fichaMoviendose);
+                casillaDestino.setHayBarrera(true);
             }
         }
     }
 
     /**
-     * Actualiza la casilla de la ficha e incrementa sus pasos recorridos.
+     * Actualiza la casilla asignada a la ficha e incrementa en uno el conteo de pasos recorridos.
      *
      * @param ficha Ficha a actualizar.
-     * @param nuevaCasilla Casilla asignada.
+     * @param nuevaCasilla Casilla de destino asignada.
      */
     public void actualizarPosicion(Ficha ficha, Casilla nuevaCasilla) {
+        if (ficha == null) return;
         ficha.cambiarPosicion(nuevaCasilla);
         ficha.setPasosDados(ficha.getPasosDados() + 1);
     }
 
-
-
-    // =========================================================================
-    // MÉTODOS AUXILIARES
-    // =========================================================================
-
     /**
-     * Coloca la ficha en la casilla de salida y cambia su estado a EN_TABLERO.
+     * Verifica si la casilla de salida correspondiente a la ficha está libre de barreras
+     * para permitir su egreso desde la base.
      *
-     * @param ficha Ficha que sale de la base.
+     * @param ficha Ficha que requiere salir de la base.
+     * @return {@code true} si la casilla de salida no está bloqueada por una barrera, {@code false} de lo contrario.
      */
-    private void salirDeBase(Ficha ficha) {
-        Casilla casillaSalida = obtenerCasillaSalida(ficha);
-
-        if (casillaSalida != null) {
-            actualizarPosicion(ficha, casillaSalida);
-            ficha.cambiarEstado(EstadoFicha.EN_TABLERO);
-        }
+    public boolean verificarCasillaSalida(Ficha ficha) {
+        CasillaSalida casillaSalida = obtenerCasillaSalida(ficha);
+        if (casillaSalida == null) return false;
+        return !casillaSalida.isHayBarrera();
     }
 
     /**
-     * Maneja el desplazamiento estándar de la ficha en el circuito común del tablero.
+     * Calcula la casilla de destino correspondiente a partir de la posición actual de la ficha y los pasos a avanzar.
      *
-     * @param ficha Ficha a avanzar.
-     * @param casillasAAvanzar Pasos a recorrer.
+     * @param ficha Ficha que se desplazará.
+     * @param pasosAvanzar Puntos del dado a recorrer.
+     * @return La objeto {@link Casilla} de destino calculada, o {@code null} si los parámetros son inválidos.
      */
-    private void avanzarEnTablero(Ficha ficha, int casillasAAvanzar) {
-        int posicionActual = casillas.indexOf(ficha.getCasillaActual()); //sacamos la posicion de la ficha
-        int totalCasillas = casillas.size(); // tomamos la cantidad de casillas en el tablero
-
-        int limiteCircuitoGeneral = 68;
-        int nuevosPasosTotales = ficha.getPasosDados() + casillasAAvanzar; //guardamos el avance70
-
-        //para doblar al pasillo
-        if (nuevosPasosTotales > limiteCircuitoGeneral) { //verificamos que los pasos no se pasen del limite del circuito
-            int pasosRestantesParaPasillo = nuevosPasosTotales - limiteCircuitoGeneral; //tomamos el valor que avanza la ficha en el pasillo meta
-
-            ficha.cambiarEstado(EstadoFicha.EN_PASILLO);
-            ficha.setPasosDados(0);
-
-            aplicarMovimientoConRebote(ficha, pasosRestantesParaPasillo);
-
-        //Evala que la ficha se mantenga en la pista comun
-        //como no todas las fichas empiezan de la posicion 0, si no evaluamos esto arrojara indexOutOfBound
-        } else {
-
-            int nuevaPosicion = posicionActual + casillasAAvanzar; // guardamos la ppsicion nueva
-            if (nuevaPosicion >= totalCasillas) { //si la posicion nueva sobrepasa la cantidad de casillas en el tablero
-                nuevaPosicion = nuevaPosicion - totalCasillas; //
-            }
-            Casilla casillaDestino = casillas.get(nuevaPosicion);
-
-            actualizarPosicion(ficha, casillaDestino);
-            evaluarCasillaDestino(casillaDestino, ficha);
+    public Casilla calcularPosicion(Ficha ficha, int pasosAvanzar) {
+        if (ficha == null || ficha.getCasillaActual() == null || casillas.isEmpty()) {
+            return null;
         }
+        int posicionActual = casillas.indexOf(ficha.getCasillaActual());
+        int nuevaPosicion = (posicionActual + pasosAvanzar) % casillas.size();
+        return casillas.get(nuevaPosicion);
     }
 
+
     /**
-     * Busca la casilla de salida correspondiente en el tablero.
+     * Metodo auxiliar privado que busca la casilla de salida en el tablero.
      *
-     * @param ficha Ficha que requiere la casilla de salida.
-     * @return La primera {@link CasillaSalida} encontrada.
+     * @param ficha Ficha a ubicar.
+     * @return La {@link CasillaSalida} encontrada, o {@code null} si no existe.
      */
     private CasillaSalida obtenerCasillaSalida(Ficha ficha) {
         for (Casilla casilla : casillas) {
@@ -370,18 +337,5 @@ public class Tablero {
             }
         }
         return null;
-    }
-
-
-    /**
-     * Comprueba si dos fichas pertenecen a jugadores distintos.
-     *
-     * @param f1 Primera ficha a comparar.
-     * @param f2 Segunda ficha a comparar.
-     * @return {@code true} si corresponden a jugadores diferentes.
-     */
-    private boolean esFichaEnemiga(Ficha f1, Ficha f2) {
-        if (f1.getIdFicha() == null || f2.getIdFicha() == null) return false;
-        return !f1.getIdFicha().equals(f2.getIdFicha());
     }
 }

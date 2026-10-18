@@ -3,9 +3,10 @@ package Modelo;
 import Dominio.Ficha;
 
 /**
- * Interfaz que define las operaciones del modelo principal para la gestión de la partida de Parchís.
- * Establece el contrato para el control de turnos, ejecución de dados, aplicación de reglas de negocio
- * (capturas, bonos y penalizaciones), actualización del marcador y notificación a observadores.
+ * Interfaz que define el contrato del modelo principal para la gestión del flujo de Parchís.
+ * Establece los métodos necesarios para la ejecución de tiradas, control de turnos,
+ * aplicación de reglas (capturas, bonos y penalizaciones), movimiento de fichas
+ * y evaluación de victoria.
  *
  * @author Equipo 2
  */
@@ -17,30 +18,42 @@ public interface IPartida {
    void notificarObservers();
 
    /**
-    * Concede un turno extra de lanzamiento al jugador activo.
-    */
-   void otorgarTurnoExtra();
-
-   /**
-    * Aplica la regla de captura sobre la ficha de un rival, enviándola a la base y acreditando el bono correspondiente.
-    *
-    * @param fichaRival Ficha del oponente capturada.
-    */
-   void aplicarCaptura(Ficha fichaRival);
-
-   /**
-    * Calcula y agrega pasos adicionales de bono a los movimientos pendientes del turno.
-    *
-    * @param distancia Cantidad de casillas/pasos a otorgar como bono.
-    */
-   void calcularFichasBono(int distancia);
-
-   /**
     * Ejecuta el tiro del dado para obtener un valor aleatorio entre 1 y 6 y procesa sus reglas.
     *
     * @return El número obtenido en el dado.
     */
    int lanzarDado();
+
+   /**
+    * Concede un turno extra de lanzamiento al jugador activo.
+    */
+   void otorgarTurnoExtra();
+
+   /**
+    * Determina si el jugador activo mantiene su turno o se cede el control al siguiente participante.
+    */
+   void gestionarSiguienteTurno();
+
+   /**
+    * Solicita el desplazamiento de una ficha específica utilizando el valor de dado disponible.
+    *
+    * @param idFicha Identificador único de la ficha que se desea mover.
+    */
+   void solicitarMovimiento(int idFicha);
+
+   /**
+    * Evalúa qué fichas del jugador en turno tienen movimientos válidos según el resultado del dado.
+    *
+    * @param resultadoDado Puntos obtenidos en la tirada.
+    */
+   void calcularMovimientosDisponibles(int resultadoDado);
+
+   /**
+    * Aplica la regla de captura sobre la ficha de un rival, enviándola a la base y acreditando el bono.
+    *
+    * @param fichaRival Ficha del oponente capturada.
+    */
+   void aplicarCaptura(Ficha fichaRival);
 
    /**
     * Aplica una sanción a una ficha enviándola directamente a la base.
@@ -50,20 +63,6 @@ public interface IPartida {
    void aplicarPenalizacion(Ficha ficha);
 
    /**
-    * Evalúa qué fichas del jugador en turno tienen movimientos válidos según el resultado del dado.
-    *
-    * @param resultadoDado Puntos obtenidos en la tirada.
-    */
-   void calcularMovimientosDispobibles(int resultadoDado);
-
-   /**
-    * Registra la entrada de una ficha a la meta y otorga las bonificaciones asociadas.
-    *
-    * @param fichaLlegada Ficha que alcanzó la meta.
-    */
-   void registrarLlegadaMeta(Ficha fichaLlegada);
-
-   /**
     * Asigna pasos de bonificación al turno activo.
     *
     * @param extra Cantidad de pasos extra por aplicar.
@@ -71,16 +70,18 @@ public interface IPartida {
    void aplicarBono(int extra);
 
    /**
-    * Determina si se mantiene el turno del jugador actual o se concede el turno al siguiente participante.
+    * Calcula y agrega pasos adicionales de bono a los movimientos pendientes del turno.
+    *
+    * @param distancia Cantidad de casillas/pasos a otorgar como bono.
     */
-   void gestionarSiguienteTurno();
+   void calcularFichasBono(int distancia);
 
    /**
-    * Solicita el desplazamieto de una ficha específica utilizando el valor de dado disponible.
+    * Registra la entrada de una ficha a la meta y otorga las bonificaciones asociadas.
     *
-    * @param idFicha Identificador único de la ficha que se desea mover.
+    * @param fichaLlegada Ficha que alcanzó la meta.
     */
-   void solicitarMovimiento(int idFicha);
+   void registrarLlegadaMeta(Ficha fichaLlegada);
 
    /**
     * Evalúa si se han cumplido las condiciones necesarias para concluir la partida.
