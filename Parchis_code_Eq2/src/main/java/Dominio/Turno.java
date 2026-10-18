@@ -28,8 +28,18 @@ public class Turno {
     /** El jugador actual que tiene el turno */
     private Jugador jugadorActual;
     
-    /** Constructor default*/
-    public Turno() {}
+    /** Constructor default que inicializa todo a sus valores por defecto.
+     * Solamente el jugador actual es el que se recibe.
+     * @param jugador actual con el turno
+     */
+    public Turno(Jugador jugador) {
+        this.lanzamientosPendientes = 1;
+        this.lanzamientosRealizados = 0;
+        this.movimientosPendientes = 0;
+        this.estadoTurno = EstadoTurno.ESPERANDO_DADO;
+        this.ultimaFichaMovida = null;
+        this.jugadorActual = jugador;
+    }
     
     /**
      * Constructos completo para inicializar un Turno, con sus lanzamientos pendientes,
@@ -147,5 +157,14 @@ public class Turno {
         this.jugadorActual = jugadorActual;
     }
     
-    
+    /**
+     * Metodo que reincia el turno a sus valores por defecto
+     * para que otro jugador pueda iniciar su turno
+     */
+    public void reiniciarTurno(){
+        lanzamientosPendientes = 1;
+        lanzamientosRealizados = 0;
+        movimientosPendientes = 0;
+        ultimaFichaMovida = null;
+    }
 }
