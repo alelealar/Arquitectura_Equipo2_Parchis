@@ -3,6 +3,7 @@ package Dominio;
 import ENUM.EstadoFicha;
 import ENUM.EstadoPartida;
 import ENUM.EstadoTurno;
+import Modelo.IObserver;
 import Modelo.IPartida;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -50,6 +51,9 @@ public class Partida implements IPartida {
 
     /** Resultado del último lanzamiento de dado realizado. */
     private int resultadoDado;
+    
+    /** Referencia a la vista suscrita para recibir notificaciones (Patrón Observer). */
+    private IObserver vistaSuscrita;
 
     // =========================================================================
     // CONSTRUCTORES
@@ -278,9 +282,21 @@ public class Partida implements IPartida {
      */
     @Override
     public void notificarObservers() {
-        // Notificación hacia la VistaJuego
+        if (vistaSuscrita != null) {
+            vistaSuscrita.actualizar(this.resultadoDado); 
+        }
     }
 
+    /**
+     * Suscribe a un observador (la Vista) para que escuche los cambios del juego.
+     * @param observador La vista que se conectará.
+     */
+    @Override
+    public void agregarObserver(IObserver observador) {
+        this.vistaSuscrita = observador;
+        System.out.println("MODELO: Vista conectada exitosamente al Observer.");
+    }
+    
     /**
      * Concede un turno de lanzamiento adicional al jugador activo.
      */
@@ -591,4 +607,10 @@ public class Partida implements IPartida {
             notificarObservers();
         }
     }
+
+    @Override
+    public void verificarFinalizarPartida() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+    
 }

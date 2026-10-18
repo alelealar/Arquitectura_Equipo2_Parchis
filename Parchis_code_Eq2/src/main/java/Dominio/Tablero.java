@@ -338,4 +338,12 @@ public class Tablero {
         }
         return null;
     }
+    
+    /**
+     * Saca una ficha de su base y la coloca en su casilla de salida correspondiente.
+     * @param ficha La ficha que se va a incorporar al tablero.
+     */
+    public void incorporarFicha(Ficha ficha) {
+        // TODO: Lógica para mover la ficha de la base a la CasillaSalida
+    }
 }

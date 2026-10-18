@@ -11,6 +11,14 @@ import Dominio.Ficha;
  * @author Equipo 2
  */
 public interface IPartida {
+    
+    /**
+     * Registra un nuevo observador para que comience a recibir notificaciones 
+     * sobre los cambios en el estado de la partida.
+     * 
+     * @param observador El componente que se va a suscribir.
+     */
+    void agregarObserver(IObserver observador);
 
    /**
     * Notifica a los observadores registrados sobre cualquier cambio en el estado de la partida.
