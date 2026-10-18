@@ -16,11 +16,12 @@ public class Tablero {
     /** Identificador único del tablero. */
     private Long idTablero;
 
+    /** Número obtenido en el dado requerido para poder sacar una ficha de la base. */
+    private int numeroSalidaBase;
+
     /** Colección de casillas que forman la estructura completa del tablero. */
     private List<Casilla> casillas;
 
-    /** Número obtenido en el dado requerido para poder sacar una ficha de la base. */
-    private int numeroSalidaBase = 5;
 
     /**
      * Constructor por defecto. Inicializa la lista de casillas del tablero.
@@ -39,6 +40,7 @@ public class Tablero {
         this.idTablero = idTablero;
         this.casillas = casillas;
     }
+
 
     // =========================================================================
     // GETTERS Y SETTERS

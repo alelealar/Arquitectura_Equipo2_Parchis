@@ -7,7 +7,7 @@ import java.util.List;
 
 /**
  * Representa a un Jugador dentro de la partida de parchis.
- * @author Julian
+ * @author Equipo 2
  */
 public class Jugador {
     
