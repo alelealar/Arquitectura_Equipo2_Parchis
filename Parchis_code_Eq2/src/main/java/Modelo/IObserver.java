@@ -11,5 +11,5 @@ package Modelo;
  * @author Equipo 2
  */
 public interface IObserver {
-    void actualizar(int numeroDado);
+    public void actualizar();
 }

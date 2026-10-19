@@ -193,11 +193,10 @@ public class VistaJuego extends javax.swing.JFrame implements IObserver{
      * Método de Reacción (Salida de datos)
      * El Modelo usa este método (a través del patrón Observer) para avisarle 
      * a la pantalla que algo cambió y que debe repintarse.
-     * @param numeroDado El resultado del dado que calculó la Partida.
      */
     @Override
-    public void actualizar(int numeroDado) {
-        lblResultado.setText("Sacaste un: " + numeroDado);
+    public void actualizar() {
+        lblResultado.setText("Sacaste un: ");
     }
     
     

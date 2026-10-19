@@ -197,7 +197,7 @@ public class Turno {
      *
      * @param valorDado Puntos obtenidos al lanzar el dado.
      */
-    public void registrarLanzamiento(int valorDado) {
+    public void registrarLanzamientoo(int valorDado) {
         if (lanzamientosRealizados < MAX_LANZAMIENTOS) {
             this.movimientosPendientes.add(valorDado);
             this.lanzamientosRealizados++;
@@ -211,6 +211,16 @@ public class Turno {
                 this.estadoTurno = EstadoTurno.EN_MOVIMIENTO;
             }
         }
+    }
+
+    public void registrarLanzamiento(int valorDado) {
+        this.movimientosPendientes.add(valorDado);
+        this.lanzamientosRealizados++;
+        this.lanzamientosPendientes--;
+    }
+
+    public void bonificarLanzamiento(){
+        this.lanzamientosPendientes++;
     }
 
     /**
@@ -233,4 +243,7 @@ public class Turno {
     public boolean tieneAccionesPendientes() {
         return this.lanzamientosPendientes > 0 || !this.movimientosPendientes.isEmpty();
     }
+
+
+
 }

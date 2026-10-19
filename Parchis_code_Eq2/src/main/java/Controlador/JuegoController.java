@@ -41,6 +41,10 @@ public class JuegoController {
         inicializarEventos();
     }
 
+    public JuegoController(IPartida modelo){
+        this.modelo = modelo;
+    }
+
     /**
      * Establece las conexiones físicas entre los componentes de la Vista 
      * y los métodos de respuesta de este Controlador (Listeners).
@@ -79,9 +83,10 @@ public class JuegoController {
      * Cumple con la regla de oro: el controlador NO genera los números aleatorios.
      */
     public void solicitarTirada() {
-        
         // Delega el cálculo de las reglas de negocio exclusivamente al Modelo.
-        modelo.lanzarDado(); 
+        modelo.lanzarDado();
+        // modelo.habilitarMovimientos();
+
     }
     
     /**

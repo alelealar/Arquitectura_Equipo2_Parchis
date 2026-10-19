@@ -1,5 +1,7 @@
 package com.eq2.parchis_code_eq2;
 
+import Vista.JuegoEnConsola;
+
 /**
  *
  * @author Home
@@ -7,6 +9,9 @@ package com.eq2.parchis_code_eq2;
 public class Parchis_code_Eq2 {
 
     public static void main(String[] args) {
-        System.out.println("Hello World!");
+
+        JuegoEnConsola juegoEnConsola = new JuegoEnConsola();
+        juegoEnConsola.iniciar();
+
     }
 }

@@ -1,7 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
- */
+
 package Pruebas;
 
 import Controlador.JuegoController;
@@ -25,39 +22,16 @@ public class Prueba1 {
     public static void main(String[] args) {
         System.out.println("Cargando motor del juego...");
 
-        // --- 1. PREPARAR MUNDO (MOCK) ---
-        // Crear primer jugador
-        Jugador j1 = new Jugador();
-        j1.setIdJugador(1L);
-        j1.setNombre("Jugador Rojo");
-        
-        // Crearle fichas al primer jugador (Método de tu equipo)
-        j1.crearFichas(4);
-        
-        // Crear segundo jugador
-        Jugador j2 = new Jugador();
-        j2.setIdJugador(2L);
-        j2.setNombre("Jugador Azul");
-        
-        // Crearle fichas al segundo jugador (Método de tu equipo)
-        j2.crearFichas(4);
+        PruebasPreparacion preparar = new PruebasPreparacion();
 
-        // Crear lista de jugadores
-        List<Jugador> jugadores = new ArrayList<>();
-        jugadores.add(j1);
-        jugadores.add(j2);
+        List<Jugador> jugadores = preparar.crearJugadores();
 
-        // Crear Tablero 
-        List<Casilla> casillasMock = new ArrayList<>();
-        Tablero tableroMock = new Tablero(1L, casillasMock);
-        tableroMock.setNumeroSalidaBase(5);
+        Tablero tablero = preparar.crearTablero();
 
-        // --- 2. CONECTAR ARQUITECTURA MVC ---
         Partida modelo = new Partida(1L, jugadores);
-        modelo.setTablero(tableroMock); 
+        modelo.setTablero(tablero);
 
-        // Creamos un turno manual de arranque
-        Turno turnoPrueba = new Turno(j1);
+        Turno turnoPrueba = new Turno(jugadores.get(0));
         modelo.setTurnoActual(turnoPrueba);
 
         VistaJuego vista = new VistaJuego();
@@ -73,9 +47,9 @@ public class Prueba1 {
         System.out.println("=======================================");
 
         while (jugando) {
-            
+
             Jugador jugadorActivo = modelo.getTurnoActual().getJugadorActual();
-            
+
             System.out.println("\n--- TURNO DE: " + jugadorActivo.getNombre() + " ---");
             System.out.println("¿Qué acción deseas realizar?");
             System.out.println("1. Lanzar Dado");
@@ -87,22 +61,22 @@ public class Prueba1 {
 
             switch (opcion) {
                 case "1":
-                               
+
                     System.out.println("\n🎲 Solicitando al sistema lanzar el dado...");
-           
+
                     controlador.solicitarTirada();
-                    
+
                     // Extrae el valor oficial de tu Modelo
-                    int resultadoDado = modelo.getResultadoDado(); 
+                    int resultadoDado = modelo.getResultadoDado();
                     System.out.println("¡Sacaste un " + resultadoDado + "!");
-                    
+
                     // --- 2. FILTRO INTELIGENTE DE FICHAS ---
                     // Separamos solo las fichas que realmente se pueden mover con este tiro
                     List<Ficha> fichasMovibles = new ArrayList<>();
                     for (Ficha f : jugadorActivo.getFichas()) {
-                        if (f.getEstado()== EstadoFicha.EN_BASE) {
+                        if (f.getEstado() == EstadoFicha.EN_BASE) {
                             // Si está en base, solo se mueve si sacaste el número clave (5)
-                            if (resultadoDado == tableroMock.getNumeroSalidaBase()) {
+                            if (resultadoDado == tablero.getNumeroSalidaBase()) {
                                 fichasMovibles.add(f);
                             }
                         } else {
@@ -112,7 +86,7 @@ public class Prueba1 {
                     }
 
                     if (fichasMovibles.isEmpty()) {
-                        System.out.println(">> No tienes fichas fuera y no sacaste un " + tableroMock.getNumeroSalidaBase() + ". No tienes movimientos válidos.");
+                        System.out.println(">> No tienes fichas fuera y no sacaste un " + tablero.getNumeroSalidaBase() + ". No tienes movimientos válidos.");
                         System.out.println(">> Turno perdido automáticamente.");
                     } else {
 
@@ -121,7 +95,7 @@ public class Prueba1 {
                         for (Ficha f : fichasMovibles) {
                             System.out.println("  ID: " + f.getIdFicha() + " [" + f.getEstado()+ "]");
                         }
-                        
+
                         boolean eleccionValida = false;
                         int intentos = 0;
                         int maxIntentos = 2;
@@ -150,13 +124,13 @@ public class Prueba1 {
                                     } else {
                                         // Elección correcta
                                         eleccionValida = true;
-                                        
-                                        if (resultadoDado == tableroMock.getNumeroSalidaBase()) {
+
+                                        if (resultadoDado == tablero.getNumeroSalidaBase()) {
                                             System.out.println("\n>> ¡Número clave! Intentando incorporar la ficha " + idFichaElegida + " a la salida...");
                                             controlador.solicitarIncorporarFicha(idFichaElegida);
                                         } else {
                                             System.out.println(">> Intentando avanzar la ficha " + idFichaElegida + "...");
-                                            
+
                                             // controlador.solicitarMovimiento(idFichaElegida);
                                         }
                                     }
@@ -175,30 +149,33 @@ public class Prueba1 {
                         }
                     }
 
-                  
+
                     System.out.println(">> Fin de las acciones. Evaluando si el turno cambia...");
                     modelo.gestionarSiguienteTurno();
-                    
+
                     break;
-                    
+
                 case "2":
                     System.out.println("\n>> ESTADO DE FICHAS:");
                     for (Ficha f : modelo.getTurnoActual().getJugadorActual().getFichas()) {
                         System.out.println("   Ficha " + f.getIdFicha() + " -> " + f.getEstado());
                     }
                     break;
-                    
+
                 case "3":
                     System.out.println("\nCerrando el motor del juego... ¡Hasta luego!");
                     jugando = false;
                     break;
-                    
+
                 default:
                     System.out.println("\n Opción no válida. Escribe 1, 2 o 3.");
             }
         }
         scanner.close();
+
+
     }
+
 }
     
 

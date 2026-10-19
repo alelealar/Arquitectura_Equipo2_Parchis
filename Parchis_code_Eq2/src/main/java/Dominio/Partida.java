@@ -5,10 +5,8 @@ import ENUM.EstadoPartida;
 import ENUM.EstadoTurno;
 import Modelo.IObserver;
 import Modelo.IPartida;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 
 /**
  * Entidad principal del dominio que orquesta el flujo completo de una partida de Parchís.
@@ -55,6 +53,8 @@ public class Partida implements IPartida {
     /** Referencia a la vista suscrita para recibir notificaciones (Patrón Observer). */
     private IObserver vistaSuscrita;
 
+    private List<Ficha> fichasDisponibles;
+
     // =========================================================================
     // CONSTRUCTORES
     // =========================================================================
@@ -87,6 +87,9 @@ public class Partida implements IPartida {
         if (!ordenJugadores.isEmpty()) {
             this.turnoActual = new Turno(ordenJugadores.get(0));
         }
+
+        this.fichasDisponibles = new LinkedList<>();
+
     }
 
     // =========================================================================
@@ -201,11 +204,20 @@ public class Partida implements IPartida {
         this.marcador = marcador;
     }
 
+    public List<Ficha> getFichasDisponibles(){
+        return fichasDisponibles;
+    }
+
+    public void setFichasDisponibles(List<Ficha> fichas) {
+        this.fichasDisponibles = fichas;
+    }
+
     /**
      * Obtiene la instancia del turno activo.
      *
      * @return Objeto {@link Turno}.
      */
+    @Override
     public Turno getTurnoActual() {
         return turnoActual;
     }
@@ -283,7 +295,7 @@ public class Partida implements IPartida {
     @Override
     public void notificarObservers() {
         if (vistaSuscrita != null) {
-            vistaSuscrita.actualizar(this.resultadoDado); 
+            vistaSuscrita.actualizar();
         }
     }
 
@@ -367,6 +379,65 @@ public class Partida implements IPartida {
      * @return El número obtenido en el dado (entre 1 y 6).
      */
     @Override
+    public int lanzarDado(){
+
+        // Verificar que el turno tenga un lanzamiento pendiente
+        int lanzamientosPedientes = turnoActual.getLanzamientosPendientes();
+        if (lanzamientosPedientes < 1){
+            return 0; // Resolver excepcion, sin lanzamientos pendientes
+        }
+
+        // Lanzar dado y registrar
+        resultadoDado = (int) (Math.random() * 6) + 1;
+        turnoActual.registrarLanzamiento(resultadoDado);
+
+        // Realizar regla de 6
+        if (resultadoDado == 6) {
+
+            if (turnoActual.getLanzamientosRealizados() > 2) {
+                Ficha ficha = turnoActual.getUltimaFichaMovida();
+                // TODO MOVER FICHA A LA CARCEL: puede ser con un metodo aparte
+            }
+
+            // Se agrega un lanzamineto extra como bonificacion
+            turnoActual.bonificarLanzamiento();
+
+        }
+
+        // Se calculan las fichas con moviiento disponible
+        fichasDisponibles = calcularMovimientosDisponibless(resultadoDado);
+
+        // Notifican a los observers
+        notificarObservers();
+
+        gestionarSiguienteTurno();
+
+        return resultadoDado;
+
+    }
+
+    // Metodo que busca que fichas tienen un movimiento disponible del jugador en turno
+    public List<Ficha> calcularMovimientosDisponibless(int valorDado){
+
+        // Crear lista de fichas que se habilitaran
+        List<Ficha> fichasDisponibles = new ArrayList<>();
+        for (Ficha ficha : turnoActual.getJugadorActual().getFichas()) {
+
+            // TODO vetificar que este metodo trate las fichas por su estado
+            boolean resultado = tablero.verificarTrayectoriaLibre(ficha, valorDado);
+
+            if (resultado) {
+                fichasDisponibles.add(ficha);
+            }
+
+        }
+
+        return fichasDisponibles;
+
+    }
+
+    /*
+    @Override
     public int lanzarDado() {
         // 3: lanzarDado():int (Viene del Controlador)
         resultadoDado = (int) (Math.random() * 6) + 1;
@@ -410,7 +481,9 @@ public class Partida implements IPartida {
         
         return resultadoDado;
     }
-    /*
+
+
+
     @Override
     public int lanzarDado() {
         resultadoDado = (int) (Math.random() * 6) + 1;
@@ -523,6 +596,21 @@ public class Partida implements IPartida {
      */
     @Override
     public void gestionarSiguienteTurno() {
+
+        if (turnoActual.getLanzamientosPendientes() < 1 || turnoActual.getMovimientosPendientes().isEmpty() ) {
+            indiceJugadorActual = (indiceJugadorActual + 1) % ordenJugadores.size();
+            Jugador siguienteJugador = ordenJugadores.get(indiceJugadorActual);
+            this.turnoActual.reiniciarTurno(siguienteJugador);
+        }
+
+        notificarObservers();
+
+
+    }
+
+    /**
+    public void gestionarSiguienteTurnoo(){
+
         if (ordenJugadores == null || ordenJugadores.isEmpty()) return;
 
         if (turnoExtra) {
@@ -540,7 +628,9 @@ public class Partida implements IPartida {
 
         this.turnoActual.reiniciarTurno(siguienteJugador);
         notificarObservers();
+
     }
+    */
 
     /**
      * Evalúa si las 4 fichas del jugador activo han alcanzado la meta para marcar la partida como finalizada.
@@ -599,7 +689,7 @@ public class Partida implements IPartida {
 
         // Buscamos exactamente la ficha que el usuario tecleó y que siga en la base
         Ficha fichaElegida = jugadorActual.getFichas().stream()
-                .filter(f -> f.getIdFicha() == idFicha && f.getEstado()== EstadoFicha.EN_BASE)
+                .filter(f -> f.getIdFicha().equals(idFicha) && f.getEstado()== EstadoFicha.EN_BASE)
                 .findFirst()
                 .orElse(null);
 

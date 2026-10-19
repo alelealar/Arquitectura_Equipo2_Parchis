@@ -1,6 +1,10 @@
 package Modelo;
 
 import Dominio.Ficha;
+import Dominio.Turno;
+import Vista.VistaJuego;
+
+import java.util.List;
 
 /**
  * Interfaz que define el contrato del modelo principal para la gestión del flujo de Parchís.
@@ -110,4 +114,11 @@ public interface IPartida {
      * Intenta sacar una ficha de la cárcel a la casilla de salida del jugador.
      */
    void incorporarFichaATablero(Long idFicha);
+
+   Turno getTurnoActual();
+
+   public List<Ficha> getFichasDisponibles();
+
+   public void setFichasDisponibles(List<Ficha> fichas);
+
 }
