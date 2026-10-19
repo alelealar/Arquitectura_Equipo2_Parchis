@@ -15,7 +15,9 @@ import java.util.List;
  * @author Equipo 2
  */
 public interface IPartida {
-    
+
+   // TODO Revisar todos los metodos, debemos de cumplir con una arquitectura y problablemente hay getters que no deban de ir
+
     /**
      * Registra un nuevo observador para que comience a recibir notificaciones 
      * sobre los cambios en el estado de la partida.
@@ -27,7 +29,7 @@ public interface IPartida {
    /**
     * Notifica a los observadores registrados sobre cualquier cambio en el estado de la partida.
     */
-   void notificarObservers();
+   void notificarObservers(String evento);
 
    /**
     * Ejecuta el tiro del dado para obtener un valor aleatorio entre 1 y 6 y procesa sus reglas.
@@ -117,8 +119,10 @@ public interface IPartida {
 
    Turno getTurnoActual();
 
-   public List<Ficha> getFichasDisponibles();
+   List<Ficha> getFichasDisponibles();
 
-   public void setFichasDisponibles(List<Ficha> fichas);
+   void setFichasDisponibles(List<Ficha> fichas);
+
+   int getResultadoDado();
 
 }

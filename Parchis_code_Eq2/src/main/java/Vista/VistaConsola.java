@@ -3,7 +3,7 @@ package Vista;
 import Controlador.JuegoController;
 import Dominio.Ficha;
 import Dominio.Jugador;
-import ENUM.EstadoPartida;
+import ENUM.EstadoFicha;
 import Modelo.IObserver;
 import Modelo.IPartida;
 
@@ -27,10 +27,10 @@ public class VistaConsola implements IObserver{
         System.out.println("=======================================");
 
         while (true) {
+            // Informacion del jugador en turno
             mostrarPanel();
             System.out.println("1. Lanzar dado");
             System.out.println("2. Mover ficha");
-            System.out.println("3. Incorporar ficha (sacar de la cárcel)");
             System.out.println("0. Salir");
             System.out.print("Opción: ");
 
@@ -45,11 +45,6 @@ public class VistaConsola implements IObserver{
                     if (id != null) controlador.solicitarMovimiento(id);
                     break;
                 }
-                case "3": {
-                    Integer id = leerEntero("ID de la ficha a sacar de la cárcel: ");
-                    if (id != null) controlador.solicitarIncorporarFicha(id.longValue());
-                    break;
-                }
                 case "0":
                     System.out.println("Saliendo del juego...");
                     return;
@@ -59,18 +54,24 @@ public class VistaConsola implements IObserver{
         }
     }
 
+    // Muestra un panel resumen de la persona en turno
     private void mostrarPanel() {
         Jugador j = modelo.getTurnoActual().getJugadorActual();
         System.out.println();
         System.out.println("--- TURNO DE: " + j.getNombre() + " (" + j.getColor() + ") ---");
-        System.out.println("Numero de dado: " + modelo.getTurnoActual().getMovimientosPendientes().toString()); // TODO mostrar numero de dado
         System.out.println("Fase: " + modelo.getTurnoActual().getEstadoTurno()
                 + " | Tiradas pendientes: " + modelo.getTurnoActual().getLanzamientosPendientes()
                 + " | Movimientos por usar: " + modelo.getTurnoActual().getMovimientosPendientes());
-        // System.out.println("Fichas de " + j.getNombre() + ":");
-        // for (Ficha f : j.getFichas()) {
-        //     System.out.println("   Ficha " + f.getIdFicha() + " -> " + f.getCasillaActual().getNumeroCasilla());
-        // }
+        System.out.println("Fichas de " + j.getNombre() + ":");
+        for (Ficha f : j.getFichas()) {
+
+            if (f.getEstado() != EstadoFicha.EN_BASE) {
+                System.out.println("   Ficha " + f.getIdFicha() + " -> " + f.getCasillaActual().getNumeroCasilla());
+            }
+
+            System.out.println("   Ficha " + f.getIdFicha() + " -> " + f.getEstado());
+
+        }
         if (!modelo.getFichasDisponibles().isEmpty()) {
             StringBuilder sb = new StringBuilder("Fichas que pueden moverse: ");
             for (Ficha f : modelo.getFichasDisponibles()) sb.append(f.getIdFicha()).append(' ');
@@ -95,8 +96,24 @@ public class VistaConsola implements IObserver{
     }
 
     @Override
-    public void actualizar() {
-        mostrarPanel();
+    public void actualizar(String evento) {
+
+        switch (evento) {
+            case "DADO_LANZADO":
+                System.out.println("🎲 " + modelo.getTurnoActual().getJugadorActual().getNombre() + " ha lanzado un " + modelo.getResultadoDado());
+                break;
+            case "SIN_MOVIMIENTOS":
+                System.out.println(modelo.getTurnoActual().getJugadorActual().getNombre() + " no puede realizar movimientos");
+                break;
+
+
+            //case "FICHA_MOVIDA":
+            //    MovimientoDTO movDto = (MovimientoDTO) datos;
+            //    System.out.println("♟️ " + movDto.getJugador() + " movió la ficha " + movDto.getFichaId() + " a la casilla " + movDto.getNuevaPosicion());
+            //    break;
+
+        }
+
     }
 
 }

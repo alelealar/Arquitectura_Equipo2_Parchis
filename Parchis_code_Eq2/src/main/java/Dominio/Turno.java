@@ -49,23 +49,77 @@ public class Turno {
     }
 
     /**
-     * Constructor completo para inicializar un turno especificando todos sus atributos y estado inicial.
-     *
-     * @param lanzamientosPendientes Cantidad de lanzamientos disponibles para tirar.
-     * @param lanzamientosRealizados Cantidad de tiradas ejecutadas.
-     * @param movimientosPendientes Lista con los valores de dados pendientes por mover.
-     * @param estadoTurno Estado inicial del turno.
-     * @param ultimaFichaMovida Última ficha movida en la jugada.
-     * @param jugador Jugador propietario del turno.
+     * Reinicia el turno a sus valores por defecto y lo asigna al siguiente jugador.
+     * @param nuevoJugador Jugador que toma el control del nuevo turno.
      */
-    public Turno(int lanzamientosPendientes, int lanzamientosRealizados, List<Integer> movimientosPendientes, EstadoTurno estadoTurno, Ficha ultimaFichaMovida, Jugador jugador) {
-        this.lanzamientosPendientes = lanzamientosPendientes;
-        this.lanzamientosRealizados = lanzamientosRealizados;
-        this.movimientosPendientes = movimientosPendientes != null ? movimientosPendientes : new ArrayList<>();
-        this.estadoTurno = estadoTurno;
-        this.ultimaFichaMovida = ultimaFichaMovida;
-        this.jugadorActual = jugador;
+    public void reiniciarTurno(Jugador nuevoJugador) {
+        this.lanzamientosPendientes = 1;
+        this.lanzamientosRealizados = 0;
+        this.movimientosPendientes.clear();
+        this.estadoTurno = EstadoTurno.ESPERANDO_DADO;
+        this.ultimaFichaMovida = null;
+        this.jugadorActual = nuevoJugador;
     }
+
+    // Registrar lanzamiento
+    public void registrarLanzamiento() {
+        this.lanzamientosRealizados++;
+        this.lanzamientosPendientes--;
+    }
+
+    public void agregarMovimiento(int valorDado) {
+        this.movimientosPendientes.add(valorDado);
+    }
+
+    public void bonificarLanzamiento(){
+        this.lanzamientosPendientes++;
+    }
+
+    /**
+     * Registra el valor obtenido tras un tiro de dado, incrementa el historial de tiradas
+     * y evalúa si el jugador gana una tirada adicional (al obtener un 6 sin superar el límite).
+     *
+     * @param valorDado Puntos obtenidos al lanzar el dado.
+     */
+    public void registrarLanzamientoo(int valorDado) {
+        if (lanzamientosRealizados < MAX_LANZAMIENTOS) {
+            this.movimientosPendientes.add(valorDado);
+            this.lanzamientosRealizados++;
+
+            // Regla: Un 6 otorga un tiro extra siempre que no se haya superado el límite de 3
+            if (valorDado == 6 && lanzamientosRealizados < MAX_LANZAMIENTOS) {
+                this.lanzamientosPendientes = 1; // Tiro adicional concedido
+                this.estadoTurno = EstadoTurno.ESPERANDO_DADO;
+            } else {
+                this.lanzamientosPendientes = 0; // Sin lanzamientos pendientes
+                this.estadoTurno = EstadoTurno.EN_MOVIMIENTO;
+            }
+        }
+    }
+
+
+    /**
+     * Remueve un valor de movimiento pendiente de la lista una vez ejecutado en el tablero.
+     * @param valorDado Puntos consumidos por la ficha movida.
+     * @return {@code true} si el valor existía y fue removido, {@code false} en caso contrario.
+     */
+    public boolean aplicarMovimiento(int valorDado) {
+        boolean removido = this.movimientosPendientes.remove(Integer.valueOf(valorDado));
+        if (this.movimientosPendientes.isEmpty() && this.lanzamientosPendientes == 0) {
+            this.estadoTurno = EstadoTurno.TURNO_FINALIZADO;
+        }
+        return removido;
+    }
+
+    /**
+     * Indica si el jugador ha agotado sus lanzamientos y no le quedan movimientos pendientes.
+     * @return {@code true} si no hay acciones pendientes en el turno.
+     */
+    public boolean tieneAccionesPendientes() {
+        return this.lanzamientosPendientes > 0 || !this.movimientosPendientes.isEmpty();
+    }
+
+    // GETTERS Y SETTERS
 
     /**
      * Obtiene la cantidad de tiradas pendientes que le quedan al jugador en este turno.
@@ -174,76 +228,5 @@ public class Turno {
     public void setJugadorActual(Jugador jugadorActual) {
         this.jugadorActual = jugadorActual;
     }
-
-    /**
-     * Reinicia el turno a sus valores por defecto para permitir la jugada del siguiente jugador.
-     */
-    /**
-     * Reinicia el turno a sus valores por defecto y lo asigna al siguiente jugador.
-     * @param nuevoJugador Jugador que toma el control del nuevo turno.
-     */
-    public void reiniciarTurno(Jugador nuevoJugador) {
-        this.lanzamientosPendientes = 1;
-        this.lanzamientosRealizados = 0;
-        this.movimientosPendientes.clear();
-        this.estadoTurno = EstadoTurno.ESPERANDO_DADO;
-        this.ultimaFichaMovida = null;
-        this.jugadorActual = nuevoJugador;
-    }
-
-    /**
-     * Registra el valor obtenido tras un tiro de dado, incrementa el historial de tiradas
-     * y evalúa si el jugador gana una tirada adicional (al obtener un 6 sin superar el límite).
-     *
-     * @param valorDado Puntos obtenidos al lanzar el dado.
-     */
-    public void registrarLanzamientoo(int valorDado) {
-        if (lanzamientosRealizados < MAX_LANZAMIENTOS) {
-            this.movimientosPendientes.add(valorDado);
-            this.lanzamientosRealizados++;
-
-            // Regla: Un 6 otorga un tiro extra siempre que no se haya superado el límite de 3
-            if (valorDado == 6 && lanzamientosRealizados < MAX_LANZAMIENTOS) {
-                this.lanzamientosPendientes = 1; // Tiro adicional concedido
-                this.estadoTurno = EstadoTurno.ESPERANDO_DADO;
-            } else {
-                this.lanzamientosPendientes = 0; // Sin lanzamientos pendientes
-                this.estadoTurno = EstadoTurno.EN_MOVIMIENTO;
-            }
-        }
-    }
-
-    public void registrarLanzamiento(int valorDado) {
-        this.movimientosPendientes.add(valorDado);
-        this.lanzamientosRealizados++;
-        this.lanzamientosPendientes--;
-    }
-
-    public void bonificarLanzamiento(){
-        this.lanzamientosPendientes++;
-    }
-
-    /**
-     * Remueve un valor de movimiento pendiente de la lista una vez ejecutado en el tablero.
-     * @param valorDado Puntos consumidos por la ficha movida.
-     * @return {@code true} si el valor existía y fue removido, {@code false} en caso contrario.
-     */
-    public boolean aplicarMovimiento(int valorDado) {
-        boolean removido = this.movimientosPendientes.remove(Integer.valueOf(valorDado));
-        if (this.movimientosPendientes.isEmpty() && this.lanzamientosPendientes == 0) {
-            this.estadoTurno = EstadoTurno.TURNO_FINALIZADO;
-        }
-        return removido;
-    }
-
-    /**
-     * Indica si el jugador ha agotado sus lanzamientos y no le quedan movimientos pendientes.
-     * @return {@code true} si no hay acciones pendientes en el turno.
-     */
-    public boolean tieneAccionesPendientes() {
-        return this.lanzamientosPendientes > 0 || !this.movimientosPendientes.isEmpty();
-    }
-
-
 
 }

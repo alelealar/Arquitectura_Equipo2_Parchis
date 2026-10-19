@@ -41,7 +41,7 @@ public class Tablero {
     public Tablero(Long idTablero, List<Casilla> casillas) {
         this.idTablero = idTablero;
         this.casillas = casillas;
-        this.numeroSalidaBase = 5;
+        this.numeroSalidaBase = 5; // TODO ESTO ESTA HARDCODEADO SE TIENE QUE RECIBIR DE ALGUN LUGAR
     }
 
     /**
@@ -159,21 +159,32 @@ public class Tablero {
      * @return {@code true} si la trayectoria está libre, {@code false} si se encuentra un bloqueo.
      */
     public boolean verificarTrayectoriaLibre(Ficha ficha, int valorDado) {
-        if (casillas.isEmpty() || ficha.getCasillaActual() == null) {
-            return true;
-        }
 
-        int posicionActual = casillas.indexOf(ficha.getCasillaActual());
-
-        for (int i = 1; i < valorDado; i++) {
-            int siguientePosicion = (posicionActual + i) % casillas.size();
-            Casilla casillaIntermedia = casillas.get(siguientePosicion);
-
-            if (casillaIntermedia.isHayBarrera()) {
-                return false;
+        if(ficha.getEstado() == EstadoFicha.EN_BASE) {
+            if (valorDado == numeroSalidaBase) {
+                return true;
             }
         }
-        return true;
+
+        if (ficha.getEstado() == EstadoFicha.EN_TABLERO) {
+
+            int posicionActual = casillas.indexOf(ficha.getCasillaActual());
+
+            for (int i = 1; i < valorDado; i++) {
+                int siguientePosicion = (posicionActual + i) % casillas.size();
+                Casilla casillaIntermedia = casillas.get(siguientePosicion);
+
+                if (casillaIntermedia.isHayBarrera()) {
+                    return false;
+                }
+            }
+            return true;
+
+        }
+
+        // TODO AGREGAR TODAS LAS VERIFICACIONES O VALIDACIONES PARA QUE LAS FICHAS SE PUEDAN MOVER O INGRESAR A UN PASILLO
+        return false;
+
     }
 
     /**

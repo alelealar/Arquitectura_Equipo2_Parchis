@@ -195,7 +195,7 @@ public class VistaJuego extends javax.swing.JFrame implements IObserver{
      * a la pantalla que algo cambió y que debe repintarse.
      */
     @Override
-    public void actualizar() {
+    public void actualizar(String evento) {
         lblResultado.setText("Sacaste un: ");
     }
     
