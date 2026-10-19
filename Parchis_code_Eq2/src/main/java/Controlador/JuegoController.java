@@ -79,7 +79,6 @@ public class JuegoController {
      * Cumple con la regla de oro: el controlador NO genera los números aleatorios.
      */
     public void solicitarTirada() {
-        System.out.println("CONTROLADOR: Clic detectado. Avisando a la Partida...");
         
         // Delega el cálculo de las reglas de negocio exclusivamente al Modelo.
         modelo.lanzarDado(); 
@@ -101,7 +100,6 @@ public class JuegoController {
      * Atrapa la petición de la vista de sacar una ficha de la cárcel.
      */
     public void solicitarIncorporarFicha(Long idFicha) {
-        System.out.println("CONTROLADOR: Solicitud de incorporar ficha " + idFicha + " detectada.");
         modelo.incorporarFichaATablero(idFicha); 
     }
 }

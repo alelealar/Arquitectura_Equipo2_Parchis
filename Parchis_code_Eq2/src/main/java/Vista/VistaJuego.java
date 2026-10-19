@@ -197,7 +197,6 @@ public class VistaJuego extends javax.swing.JFrame implements IObserver{
      */
     @Override
     public void actualizar(int numeroDado) {
-        System.out.println("VISTA: --- Pantalla gráfica redibujada con los nuevos cambios del Modelo ---");
         lblResultado.setText("Sacaste un: " + numeroDado);
     }
     

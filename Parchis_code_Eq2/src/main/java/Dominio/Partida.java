@@ -486,7 +486,6 @@ public class Partida implements IPartida {
         }
 
         if (fichasHabilitadas.isEmpty()) {
-            System.out.println("El jugador " + jugadorActual.getNombre() + " no tiene movimientos válidos.");
             if (turnoActual.getMovimientosPendientes() != null && !turnoActual.getMovimientosPendientes().isEmpty()) {
                 turnoActual.getMovimientosPendientes().remove(0); // Consume el dado atascado
             }
