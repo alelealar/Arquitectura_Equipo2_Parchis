@@ -2,6 +2,7 @@
 package Dominio;
 
 import ENUM.ColorJugador;
+import ENUM.EstadoFicha;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -140,7 +141,16 @@ public class Jugador {
         for (int i = 0; i < cantidad; i++) {
             Ficha ficha = new Ficha();
             ficha.setIdFicha((idJugador * 10) + i + 1); 
+            ficha.setEstadoFicha(EstadoFicha.EN_BASE);
             fichas.add(ficha);
         }
+    }
+    // SOLO PARA PRUEBA
+    /**
+     * Metodo para asignarle una lista de fichas al jugador
+     * @param fichas la lista de fichas a establecer
+     */
+    public void setFichas(List<Ficha> fichas) {
+        this.fichas = fichas;
     }
 }

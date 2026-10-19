@@ -4,6 +4,8 @@
  */
 package Vista;
 
+import Modelo.IObserver;
+
 /**
  * Capa de presentación (Vista) que gestiona la interfaz gráfica de la partida de Parchís.
  * Su responsabilidad exclusiva es renderizar los componentes visuales (tablero, botones, fichas),
@@ -15,7 +17,7 @@ package Vista;
  *
  * @author Equipo 2
  */
-public class VistaJuego extends javax.swing.JFrame {
+public class VistaJuego extends javax.swing.JFrame implements IObserver{
 
     /**
      * Creates new form VistaJuego
@@ -37,6 +39,9 @@ public class VistaJuego extends javax.swing.JFrame {
         pnlFondo = new javax.swing.JPanel();
         btnLanzarDado = new javax.swing.JButton();
         lblResultado = new javax.swing.JLabel();
+        jSeparator1 = new javax.swing.JSeparator();
+        txtIdFicha = new javax.swing.JTextField();
+        btnMoverFicha = new javax.swing.JButton();
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -63,27 +68,49 @@ public class VistaJuego extends javax.swing.JFrame {
 
         lblResultado.setText("Resultado dado");
 
+        btnMoverFicha.setFont(new java.awt.Font("Helvetica Neue", 1, 13)); // NOI18N
+        btnMoverFicha.setText("Mover Ficha");
+
         javax.swing.GroupLayout pnlFondoLayout = new javax.swing.GroupLayout(pnlFondo);
         pnlFondo.setLayout(pnlFondoLayout);
         pnlFondoLayout.setHorizontalGroup(
             pnlFondoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(pnlFondoLayout.createSequentialGroup()
-                .addGap(148, 148, 148)
+                .addGap(138, 138, 138)
                 .addGroup(pnlFondoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(btnLanzarDado)
                     .addGroup(pnlFondoLayout.createSequentialGroup()
                         .addGap(6, 6, 6)
                         .addComponent(lblResultado)))
-                .addContainerGap(137, Short.MAX_VALUE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, pnlFondoLayout.createSequentialGroup()
+                .addContainerGap(24, Short.MAX_VALUE)
+                .addGroup(pnlFondoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, pnlFondoLayout.createSequentialGroup()
+                        .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 348, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(22, 22, 22))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, pnlFondoLayout.createSequentialGroup()
+                        .addComponent(txtIdFicha, javax.swing.GroupLayout.PREFERRED_SIZE, 77, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(46, 46, 46)
+                        .addComponent(btnMoverFicha)
+                        .addGap(89, 89, 89))))
         );
         pnlFondoLayout.setVerticalGroup(
             pnlFondoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(pnlFondoLayout.createSequentialGroup()
-                .addGap(109, 109, 109)
+                .addGap(24, 24, 24)
                 .addComponent(btnLanzarDado, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(lblResultado)
-                .addContainerGap(100, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(pnlFondoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(btnMoverFicha, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(pnlFondoLayout.createSequentialGroup()
+                        .addComponent(txtIdFicha, javax.swing.GroupLayout.DEFAULT_SIZE, 38, Short.MAX_VALUE)
+                        .addGap(8, 8, 8)))
+                .addContainerGap(128, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -149,21 +176,41 @@ public class VistaJuego extends javax.swing.JFrame {
     }
     
     /**
+     * Permite que el Controlador "enchufe" su cable al nuevo botón de Mover.
+     */
+    public void addMoverFichaListener(java.awt.event.ActionListener escuchador) {
+        btnMoverFicha.addActionListener(escuchador);
+    }
+    
+    /**
+     * Extrae el texto que el jugador escribió en la caja de texto.
+     */
+    public String getIdFichaTexto() {
+        return txtIdFicha.getText();
+    }
+    
+    /**
      * Método de Reacción (Salida de datos)
      * El Modelo usa este método (a través del patrón Observer) para avisarle 
      * a la pantalla que algo cambió y que debe repintarse.
      * @param numeroDado El resultado del dado que calculó la Partida.
      */
+    @Override
     public void actualizar(int numeroDado) {
-        System.out.println("Sacaste un: " + numeroDado);
+        System.out.println("VISTA: --- Pantalla gráfica redibujada con los nuevos cambios del Modelo ---");
         lblResultado.setText("Sacaste un: " + numeroDado);
     }
+    
+    
     
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnLanzarDado;
+    private javax.swing.JButton btnMoverFicha;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JSeparator jSeparator1;
     private javax.swing.JLabel lblResultado;
     private javax.swing.JPanel pnlFondo;
+    private javax.swing.JTextField txtIdFicha;
     // End of variables declaration//GEN-END:variables
 }

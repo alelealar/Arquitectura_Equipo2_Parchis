@@ -98,6 +98,58 @@ public class Tablero {
         this.numeroSalidaBase = numeroSalidaBase;
     }
 
+    
+    /**
+     * Obtiene la casilla de salida asignada al jugador según su color.
+     *
+     * @param jugador Jugador dueño de la casilla de salida.
+     * @return La Casilla correspondiente a la salida.
+     */
+    public Casilla getCasillaSalidaJugador(Jugador jugador) {
+        // TODO: Buscar en this.casillas la CasillaSalida que coincida con el color del jugador.
+        if (!casillas.isEmpty()) {
+            return casillas.get(0); // Retornamos la primera temporalmente para evitar errores en pruebas
+        }
+        return null; 
+    }
+
+    /**
+     * Verifica si la casilla de salida está libre, bloqueada o tiene un rival.
+     * Fusiona la lógica del equipo con el requerimiento de 3 estados del UML.
+     *
+     * @param ficha La ficha que intenta salir de la cárcel.
+     * @return El estado de la casilla: "Libre", "Rival" o "Bloqueada".
+     */
+    public String verificarCasillaSalida(Ficha ficha) {
+        // 1. Usamos el método real de tus compañeros para encontrar la casilla
+        CasillaSalida casillaSalida = obtenerCasillaSalida(ficha);
+        
+        // Si no existe la casilla o tiene una barrera, está bloqueada
+        if (casillaSalida == null || casillaSalida.isHayBarrera()) {
+            return "Bloqueada";
+        }
+        
+        // 2. Verificamos si está ocupada por alguna ficha (Rival)
+        if (!casillaSalida.getFichas().isEmpty()) {
+            return "Rival";
+        }
+
+        // 3. Si pasó los filtros anteriores, es una salida normal
+        return "Libre";
+    }
+
+    /**
+     * En caso de que la casilla de salida esté ocupada por un rival, extrae su ficha para capturarla.
+     *
+     * @param jugador El jugador actual que está saliendo de la cárcel.
+     * @return La ficha del rival.
+     */
+    public Ficha obtenerFichaRivalEnSalida(Jugador jugador) {
+        // TODO: Lógica para devolver la ficha que esté en la casilla y no pertenezca al jugador
+        return null;
+    }
+    
+    
     /**
      * Revisa casilla por casilla en el recorrido para asegurar que no exista ninguna barrera activa
      * en las casillas intermedias del avance.
@@ -125,11 +177,11 @@ public class Tablero {
     }
 
     /**
-     * Coordina el avance general de la ficha comprobando previamente que la trayectoria esté libre.
-     *
-     * @param ficha Ficha que se desea desplazar.
-     * @param valorDado Cantidad de casillas a mover.
-     */
+    * Coordina el avance general de la ficha comprobando previamente que la trayectoria esté libre.
+    *
+    * @param ficha Ficha que se desea desplazar.
+    * @param valorDado Cantidad de casillas a mover.
+    */
     public void procesarAvance(Ficha ficha, int valorDado) {
         if (verificarTrayectoriaLibre(ficha, valorDado)) {
             moverFicha(ficha, valorDado);
@@ -203,11 +255,15 @@ public class Tablero {
      *
      * @param ficha Ficha que abandona la base.
      */
-    public void incorporarFichaAlTablero(Ficha ficha) {
+   public void incorporarFichaAlTablero(Ficha ficha) {
         if (ficha == null) return;
         CasillaSalida casillaSalida = obtenerCasillaSalida(ficha);
 
-        if (casillaSalida != null && verificarCasillaSalida(ficha)) {
+        // Extraemos el texto del estado de la salida
+        String estadoSalida = verificarCasillaSalida(ficha);
+
+        // Si la casilla existe y su estado NO es "Bloqueada"
+        if (casillaSalida != null && !estadoSalida.equals("Bloqueada")) {
             actualizarPosicion(ficha, casillaSalida);
             ficha.cambiarEstado(EstadoFicha.EN_TABLERO);
             casillaSalida.getFichas().add(ficha);
@@ -245,6 +301,58 @@ public class Tablero {
      * @param casillaDestino Casilla a la que llegó la ficha.
      * @param fichaMoviendose Ficha que realizó el desplazamiento.
      */
+    /**
+     * Evalúa las reglas del juego en la casilla de llegada (capturas de fichas enemigas,
+     * formación de barreras o ingreso a la meta).
+     *
+     * @param casillaDestino Casilla a la que llegó la ficha.
+     * @param fichaMoviendose Ficha que realizó el desplazamiento.
+     * @return El estado resultante ("CAPTURA", "CasillaMeta" o "NORMAL").
+     */
+    public String evaluarCasillaDestino(Casilla casillaDestino, Ficha fichaMoviendose) {
+        if (casillaDestino == null || fichaMoviendose == null) return "NORMAL";
+
+        List<Ficha> fichasEnCasilla = casillaDestino.getFichas();
+
+        if (casillaDestino instanceof CasillaMeta) {
+            moverAMeta(fichaMoviendose);
+            fichasEnCasilla.add(fichaMoviendose);
+            return "CasillaMeta"; // Le avisamos a Partida que llegó a la meta
+        }
+
+        if (casillaDestino instanceof CasillaSegura || casillaDestino instanceof CasillaSalida) {
+            if (!fichasEnCasilla.isEmpty()) {
+                casillaDestino.setHayBarrera(true);
+            }
+            fichasEnCasilla.add(fichaMoviendose);
+            return "NORMAL";
+        }
+
+        if (casillaDestino instanceof CasillaNormal) {
+            if (fichasEnCasilla.isEmpty()) {
+                fichasEnCasilla.add(fichaMoviendose);
+                return "NORMAL";
+            }
+
+            Ficha fichaExistente = fichasEnCasilla.get(0);
+            
+            // Si la ficha existente es de diferente color/jugador (suponiendo validación por ID)
+            if (!fichaExistente.getIdFicha().equals(fichaMoviendose.getIdFicha())) {
+                regresarFichaBase(fichaExistente);
+                fichasEnCasilla.remove(fichaExistente);
+                fichasEnCasilla.add(fichaMoviendose);
+                
+                return "CAPTURA"; // Le avisamos a Partida que hubo una captura
+            } else {
+                fichasEnCasilla.add(fichaMoviendose);
+                casillaDestino.setHayBarrera(true);
+                return "NORMAL";
+            }
+        }
+        
+        return "NORMAL";
+    }
+    /*
     public void evaluarCasillaDestino(Casilla casillaDestino, Ficha fichaMoviendose) {
         if (casillaDestino == null || fichaMoviendose == null) return;
 
@@ -281,6 +389,7 @@ public class Tablero {
             }
         }
     }
+    */
 
     /**
      * Actualiza la casilla asignada a la ficha e incrementa en uno el conteo de pasos recorridos.
@@ -294,18 +403,6 @@ public class Tablero {
         ficha.setPasosDados(ficha.getPasosDados() + 1);
     }
 
-    /**
-     * Verifica si la casilla de salida correspondiente a la ficha está libre de barreras
-     * para permitir su egreso desde la base.
-     *
-     * @param ficha Ficha que requiere salir de la base.
-     * @return {@code true} si la casilla de salida no está bloqueada por una barrera, {@code false} de lo contrario.
-     */
-    public boolean verificarCasillaSalida(Ficha ficha) {
-        CasillaSalida casillaSalida = obtenerCasillaSalida(ficha);
-        if (casillaSalida == null) return false;
-        return !casillaSalida.isHayBarrera();
-    }
 
     /**
      * Calcula la casilla de destino correspondiente a partir de la posición actual de la ficha y los pasos a avanzar.

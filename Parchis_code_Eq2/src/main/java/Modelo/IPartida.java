@@ -105,4 +105,9 @@ public interface IPartida {
     * Verifica si la partida ha concluido para efectuar el cierre del juego y la actualización del marcador.
     */
    void verificarFinalizarPartida();
+   
+   /**
+     * Intenta sacar una ficha de la cárcel a la casilla de salida del jugador.
+     */
+   void incorporarFichaATablero(Long idFicha);
 }

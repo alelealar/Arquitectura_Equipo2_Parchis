@@ -368,6 +368,51 @@ public class Partida implements IPartida {
      */
     @Override
     public int lanzarDado() {
+        // 3: lanzarDado():int (Viene del Controlador)
+        resultadoDado = (int) (Math.random() * 6) + 1;
+
+        // 4: registrarLanzamiento(valorDado: int) 
+        turnoActual.registrarLanzamiento(resultadoDado);
+
+        // Bloque alt: Accion resultado dado
+        if (turnoActual.getLanzamientosRealizados() == 3 && resultadoDado == 6) {
+            
+            // [Penalización por 3 seises]
+            Ficha fichaPenalizada = turnoActual.getUltimaFichaMovida();
+            if (fichaPenalizada != null && tablero != null) {
+                // 5: regresarFichaBase(ficha: Ficha)
+                // (El método regresarFichaBase del Tablero se encarga de cambiar la posición de la Ficha)
+                tablero.regresarFichaBase(fichaPenalizada); 
+            }
+            
+            // 6: reiniciarTurno(nuevoJugador: Jugador) 
+            // (Llamamos a tu método de gestión que pasa el turno al siguiente)
+            turnoActual.getMovimientosPendientes().clear();
+            turnoActual.setLanzamientosPendientes(0);
+            gestionarSiguienteTurno();
+            
+        } else {
+            
+            // [Tiro normal / Sin castigo]
+            
+            // 8: calcularMovimientosDisponibles(resultadoDado: int)
+            calcularMovimientosDisponibles(resultadoDado);
+
+            // Bloque opt: Resultado Dado
+            if (resultadoDado == 6) {
+                // 9: otorgarTurnoExtra()
+                otorgarTurnoExtra();
+            }
+        }
+
+        // 10: notificarObservers()
+        notificarObservers();
+        
+        return resultadoDado;
+    }
+    /*
+    @Override
+    public int lanzarDado() {
         resultadoDado = (int) (Math.random() * 6) + 1;
 
         if (turnoActual.getLanzamientosRealizados() == 2 && resultadoDado == 6) {
@@ -390,7 +435,7 @@ public class Partida implements IPartida {
 
         notificarObservers();
         return resultadoDado;
-    }
+    }*/
 
     /**
      * Evalúa cuáles fichas del jugador en turno tienen un movimiento válido
@@ -418,7 +463,9 @@ public class Partida implements IPartida {
 
             switch (ficha.getEstado()) {
                 case EN_BASE:
-                    if (resultadoDado == tablero.getNumeroSalidaBase() && tablero.verificarCasillaSalida(ficha)) {
+                    String estadoSalida = tablero.verificarCasillaSalida(ficha);
+                    // Solo se habilita si sale el número requerido (ej. 5) y la salida no tiene barrera
+                    if (resultadoDado == tablero.getNumeroSalidaBase() && !estadoSalida.equals("Bloqueada")) {
                         fichasHabilitadas.add(ficha);
                     }
                     break;
@@ -547,20 +594,22 @@ public class Partida implements IPartida {
     /**
      * Solicita la incorporación de una ficha del jugador activo desde la base hacia la casilla de salida del tablero.
      */
-    public void incorporarFichaATablero() {
-        if (turnoActual == null || tablero == null) return;
-
+    @Override
+    public void incorporarFichaATablero(Long idFicha) {
         Jugador jugadorActual = turnoActual.getJugadorActual();
-        if (jugadorActual == null || jugadorActual.getFichas() == null) return;
 
-        Ficha fichaEnBase = jugadorActual.getFichas().stream()
-                .filter(f -> f.getEstado() == EstadoFicha.EN_BASE)
+        // Buscamos exactamente la ficha que el usuario tecleó y que siga en la base
+        Ficha fichaElegida = jugadorActual.getFichas().stream()
+                .filter(f -> f.getIdFicha() == idFicha && f.getEstado()== EstadoFicha.EN_BASE)
                 .findFirst()
                 .orElse(null);
 
-        if (fichaEnBase != null) {
-            tablero.incorporarFicha(fichaEnBase);
+        if (fichaElegida != null) {
+            // Si la encontró, mandamos esa ficha exacta al tablero
+            tablero.incorporarFichaAlTablero(fichaElegida);
             notificarObservers();
+        } else {
+            System.out.println("MODELO: Movimiento inválido. La ficha " + idFicha + " no existe o ya no está en la base.");
         }
     }
 
@@ -579,6 +628,81 @@ public class Partida implements IPartida {
      *
      * @param idFicha Identificador único de la ficha a mover.
      */
+    @Override
+    public void solicitarMovimiento(int idFicha) {
+        if (turnoActual.getMovimientosPendientes().isEmpty()) return;
+
+        Jugador jugadorActual = turnoActual.getJugadorActual();
+        if (jugadorActual == null || jugadorActual.getFichas() == null) return;
+
+        // Buscamos la ficha que corresponde al ID ingresado
+        Ficha fichaAMover = jugadorActual.getFichas().stream()
+                .filter(f -> f.getIdFicha() != null && f.getIdFicha().equals((long) idFicha))
+                .findFirst()
+                .orElse(null);
+
+        if (fichaAMover == null) {
+            System.out.println("MODELO: Movimiento rechazado. La ficha con ID " + idFicha + " no existe o no le pertenece al jugador actual.");
+            return;
+        }
+        if (tablero == null) {
+            System.out.println("MODELO: Error crítico. El tablero no ha sido inicializado.");
+            return;
+        }
+        
+        if (fichaAMover == null || tablero == null) return;
+
+        int valorDado = turnoActual.getMovimientosPendientes().get(0);
+
+        // 4: verificarTrayectoriaLibre(ficha: Ficha, valorDado: int)
+        // 5: Retorna un boolean "trayectoria"
+        boolean trayectoriaLibre = tablero.verificarTrayectoriaLibre(fichaAMover, valorDado);
+
+        // alt Tipo de Trayectoria
+        if (trayectoriaLibre) {
+            
+            // alt Tipo Movimiento
+            if (fichaAMover.getEstado() == EstadoFicha.EN_PASILLO) {
+                // 6: aplicarMovimientoConRebote(ficha: Ficha, valorDado: int)
+                tablero.aplicarMovimientoConRebote(fichaAMover, valorDado);
+            } else {
+                // 8: procesarAvance(valorDado: int, ficha: Ficha)
+                tablero.procesarAvance(fichaAMover, valorDado);
+            }
+
+            // 10: aplicarMovimiento(int: valorDado) en Turno
+            turnoActual.aplicarMovimiento(valorDado);
+
+            // 11: evaluarCasillaDestino(casillaDestino: Casilla, fichaMoviendose: Ficha)
+            // (Asumimos que el tablero evalúa la casilla actual de la ficha)
+            
+            //String estadoCasilla = tablero.evaluarCasillaDestino(null, fichaAMover); // TODO: Pasar la CasillaDestino real
+
+            Casilla casillaDestino = fichaAMover.getCasillaActual();
+            String estadoCasilla = tablero.evaluarCasillaDestino(casillaDestino, fichaAMover);
+            
+            // alt Resultado de Movimiento
+            if ("CAPTURA".equals(estadoCasilla)) {
+                // ref Capturar Ficha Rival
+                aplicarCaptura(fichaAMover); // (Aquí iría la ficha rival real)
+            } else if ("CasillaMeta".equals(estadoCasilla)) {
+                // ref Ingresar Ficha a la Meta
+                registrarLlegadaMeta(fichaAMover);
+            } else {
+                // [else]
+                // 13: tieneAccionesPendientes()
+                // 14: gestionarSiguienteTurno()
+                if (!turnoActual.tieneAccionesPendientes()) {
+                    gestionarSiguienteTurno();
+                }
+            }
+        }
+
+        // 15: notificarObservers()
+        // 16: Retorna el control y la vista hace actualizar()
+        notificarObservers();
+    }
+    /*
     @Override
     public void solicitarMovimiento(int idFicha) {
         if (turnoActual.getMovimientosPendientes().isEmpty()) return;
@@ -607,6 +731,7 @@ public class Partida implements IPartida {
             notificarObservers();
         }
     }
+    */
 
     @Override
     public void verificarFinalizarPartida() {
