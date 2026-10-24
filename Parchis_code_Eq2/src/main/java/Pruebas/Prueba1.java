@@ -1,7 +1,7 @@
 
 package Pruebas;
 
-import Controlador.JuegoController;
+import Controlador.ControlPartida;
 import Dominio.Casilla;
 import Dominio.Ficha;
 import Dominio.Jugador;
@@ -36,7 +36,7 @@ public class Prueba1 {
 
         VistaJuego vista = new VistaJuego();
         modelo.agregarObserver(vista);
-        JuegoController controlador = new JuegoController(vista, modelo);
+        ControlPartida controlador = new ControlPartida(vista, modelo);
 
         // --- 3. CICLO DEL JUEGO (GAME LOOP) ---
         Scanner scanner = new Scanner(System.in);

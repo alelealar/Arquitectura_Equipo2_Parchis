@@ -20,11 +20,9 @@ import java.awt.event.ActionListener;
  *
  * @author Equipo 2
  */
-public class JuegoController {
-    /** Referencia a la capa de presentación. */
+public class ControlPartida {
     private VistaJuego vista;
-    
-    /** Referencia al contrato de la capa de dominio. */
+
     private IPartida modelo; 
 
     /**
@@ -34,21 +32,17 @@ public class JuegoController {
      * @param vista  La ventana interactiva del usuario.
      * @param modelo La instancia que maneja la lógica y estado de la partida.
      */
-    public JuegoController(VistaJuego vista, IPartida modelo) {
+    public ControlPartida(VistaJuego vista, IPartida modelo) {
         this.vista = vista;
         this.modelo = modelo;
         
         inicializarEventos();
     }
 
-    public JuegoController(IPartida modelo){
+    public ControlPartida(IPartida modelo){
         this.modelo = modelo;
     }
 
-    /**
-     * Establece las conexiones físicas entre los componentes de la Vista 
-     * y los métodos de respuesta de este Controlador (Listeners).
-     */
     private void inicializarEventos() {
         // "Cable' para botón de CU: Lanzar Dado
         this.vista.addLanzarDadoListener(new ActionListener() {
@@ -77,33 +71,16 @@ public class JuegoController {
         });
     }
 
-    /**
-     * Método de enrutamiento para el caso de uso "Lanzar Dado".
-     * Atrapa el clic del usuario en la interfaz y delega la ejecución al modelo.
-     * Cumple con la regla de oro: el controlador NO genera los números aleatorios.
-     */
-    public void solicitarTirada() {
-        // Delega el cálculo de las reglas de negocio exclusivamente al Modelo.
-        modelo.lanzarDado();
-        // modelo.habilitarMovimientos();
 
+    public void solicitarTirada() {
+        modelo.lanzarDado();
     }
-    
-    /**
-     * Método 2 del Diagrama de Secuencia: solicitarMovimiento(idFicha: int)
-     * Atrapa la petición de la vista y delega la ejecución al modelo.
-     * 
-     * @param idFicha Identificador de la ficha a mover.
-     */
+
     public void solicitarMovimiento(int idFicha) {
         System.out.println("CONTROLADOR: Ordenando al modelo mover la ficha ID: " + idFicha);
         modelo.solicitarMovimiento(idFicha);
     }
-    
-    /**
-     * Mensaje 2 del Diagrama: solicitarIncorporarFicha()
-     * Atrapa la petición de la vista de sacar una ficha de la cárcel.
-     */
+
     public void solicitarIncorporarFicha(Long idFicha) {
         modelo.incorporarFichaATablero(idFicha); 
     }

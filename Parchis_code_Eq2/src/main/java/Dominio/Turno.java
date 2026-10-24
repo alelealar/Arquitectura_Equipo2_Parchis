@@ -61,7 +61,12 @@ public class Turno {
         this.jugadorActual = nuevoJugador;
     }
 
-    // Registrar lanzamiento
+    public void cancelarTurno() {
+        this.lanzamientosPendientes = 0;
+        this.lanzamientosRealizados = 0;
+        this.estadoTurno = EstadoTurno.TURNO_FINALIZADO;
+    }
+
     public void registrarLanzamiento() {
         this.lanzamientosRealizados++;
         this.lanzamientosPendientes--;

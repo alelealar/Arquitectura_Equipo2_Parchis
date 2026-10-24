@@ -23,6 +23,9 @@ public class Ficha {
     /** Referencia a la casilla actual donde se encuentra la ficha en el tablero. */
     private Casilla casillaActual;
 
+    // Referencia a JUgador
+    private Jugador jugador;
+
     /**
      * Constructor completo para inicializar una ficha con su ID, estado y pasos recorridos.
      *
@@ -34,6 +37,13 @@ public class Ficha {
         this.idFicha = idFicha;
         this.estadoFicha = estadoFicha;
         this.pasosDados = pasosDados;
+    }
+
+    public Ficha(Long idFicha, Jugador jugador) {
+        this.idFicha = idFicha;
+        this.jugador = jugador;
+        this.estadoFicha = EstadoFicha.EN_BASE;
+        this.pasosDados = 0;
     }
 
     /**
@@ -114,6 +124,14 @@ public class Ficha {
      */
     public void setCasillaActual(Casilla casillaActual) {
         this.casillaActual = casillaActual;
+    }
+
+    public Jugador getJugador() {
+        return jugador;
+    }
+
+    public void setJugador(Jugador jugador) {
+        this.jugador = jugador;
     }
 
     /**

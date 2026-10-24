@@ -49,7 +49,7 @@ public class Partida implements IPartida {
 
     /** Resultado del último lanzamiento de dado realizado. */
     private int resultadoDado;
-    
+
     /** Referencia a la vista suscrita para recibir notificaciones (Patrón Observer). */
     private IObserver vistaSuscrita;
 
@@ -156,33 +156,43 @@ public class Partida implements IPartida {
         // Realizar regla de 6
         if (resultadoDado == 6) {
 
-            if (turnoActual.getLanzamientosRealizados() > 2) {
+            if (turnoActual.getLanzamientosRealizados() >= 3) { //PENALIZACION 3 seises
                 Ficha ficha = turnoActual.getUltimaFichaMovida();
-                // TODO MOVER FICHA A LA CARCEL: puede ser con un metodo aparte
+                if(ficha != null){
+                    tablero.regresarFichaBase(ficha);
+                }
+                turnoActual.cancelarTurno();
+                gestionarSiguienteTurno();
+                notificarObservers("PENALIZACION_TRES_SEISES");
+                return resultadoDado;
+                // TODO MOVER FICHA A LA CARCEL: puede ser con un metodo aparte YASTAAAAAA
             }
-
-            // Se agrega un lanzamineto extra como bonificacion
             turnoActual.bonificarLanzamiento();
-
+            this.turnoExtra = true;
+        } else {
+            this.turnoExtra = false;
         }
-
-        // TODO Notificacion a los observer, hay qeu ver ocmo la vamos a manejar, momentaneamente agarre el strings que indican el evento
-        notificarObservers("DADO_LANZADO");
 
         // Se calculan las fichas con moviiento disponible
         fichasDisponibles = calcularMovimientosDisponibless(resultadoDado);
 
+        List<Ficha> fichasAHabilitar = new ArrayList<>();
+        for (Ficha ficha : fichasDisponibles) {
+            String estadoSalida = tablero.verificarCasillaSalida(ficha); //
+            if (!"Bloqueada".equals(estadoSalida)) {
+                fichasAHabilitar.add(ficha);
+            }
+        }
+
         // Se agrega el movimiento como pendiente una vez se valida que puede usarlo
         if (!fichasDisponibles.isEmpty()) {
             turnoActual.agregarMovimiento(resultadoDado);
+            notificarObservers("DADO_LANZADO");
         } else {
             notificarObservers("SIN_MOVIMIENTOS");
         }
 
-        gestionarSiguienteTurno();
-
         return resultadoDado;
-
     }
 
     // Metodo que busca que fichas tienen un movimiento disponible del jugador en turno
@@ -308,79 +318,6 @@ public class Partida implements IPartida {
         //notificarObservers();
     }
 
-    /*
-    @Override
-    public int lanzarDado() {
-        // 3: lanzarDado():int (Viene del Controlador)
-        resultadoDado = (int) (Math.random() * 6) + 1;
-
-        // 4: registrarLanzamiento(valorDado: int) 
-        turnoActual.registrarLanzamiento(resultadoDado);
-
-        // Bloque alt: Accion resultado dado
-        if (turnoActual.getLanzamientosRealizados() == 3 && resultadoDado == 6) {
-            
-            // [Penalización por 3 seises]
-            Ficha fichaPenalizada = turnoActual.getUltimaFichaMovida();
-            if (fichaPenalizada != null && tablero != null) {
-                // 5: regresarFichaBase(ficha: Ficha)
-                // (El método regresarFichaBase del Tablero se encarga de cambiar la posición de la Ficha)
-                tablero.regresarFichaBase(fichaPenalizada); 
-            }
-            
-            // 6: reiniciarTurno(nuevoJugador: Jugador) 
-            // (Llamamos a tu método de gestión que pasa el turno al siguiente)
-            turnoActual.getMovimientosPendientes().clear();
-            turnoActual.setLanzamientosPendientes(0);
-            gestionarSiguienteTurno();
-            
-        } else {
-            
-            // [Tiro normal / Sin castigo]
-            
-            // 8: calcularMovimientosDisponibles(resultadoDado: int)
-            calcularMovimientosDisponibles(resultadoDado);
-
-            // Bloque opt: Resultado Dado
-            if (resultadoDado == 6) {
-                // 9: otorgarTurnoExtra()
-                otorgarTurnoExtra();
-            }
-        }
-
-        // 10: notificarObservers()
-        notificarObservers();
-        
-        return resultadoDado;
-    }
-
-
-
-    @Override
-    public int lanzarDado() {
-        resultadoDado = (int) (Math.random() * 6) + 1;
-
-        if (turnoActual.getLanzamientosRealizados() == 2 && resultadoDado == 6) {
-            Ficha fichaPenalizada = turnoActual.getUltimaFichaMovida();
-            if (fichaPenalizada != null && tablero != null) {
-                tablero.regresarFichaBase(fichaPenalizada);
-            }
-
-            turnoActual.getMovimientosPendientes().clear();
-            turnoActual.setLanzamientosPendientes(0);
-            gestionarSiguienteTurno();
-            return resultadoDado;
-        }
-
-        turnoActual.registrarLanzamiento(resultadoDado);
-
-        if (resultadoDado == 6) {
-            otorgarTurnoExtra();
-        }
-
-        notificarObservers();
-        return resultadoDado;
-    }*/
 
     /**
      * Evalúa cuáles fichas del jugador en turno tienen un movimiento válido
@@ -526,9 +463,15 @@ public class Partida implements IPartida {
                 .orElse(null);
 
         if (fichaElegida != null) {
-            // Si la encontró, mandamos esa ficha exacta al tablero
-            tablero.incorporarFichaAlTablero(fichaElegida);
-            //notificarObservers();
+
+            String resultadoCasilla = tablero.verificarCasillaSalida(fichaElegida);
+            if ("Bloqueada".equals(resultadoCasilla)) {
+                System.out.println("MODELO: La casilla de salida está bloqueada por una barrera.");
+
+            } else {
+                tablero.procesarAvance(fichaElegida, this.resultadoDado);
+                notificarObservers("FICHA_INCORPORADA");
+            }
         } else {
             System.out.println("MODELO: Movimiento inválido. La ficha " + idFicha + " no existe o ya no está en la base.");
         }
@@ -570,7 +513,7 @@ public class Partida implements IPartida {
             System.out.println("MODELO: Error crítico. El tablero no ha sido inicializado.");
             return;
         }
-        
+
         if (fichaAMover == null || tablero == null) return;
 
         int valorDado = turnoActual.getMovimientosPendientes().get(0);
@@ -581,7 +524,7 @@ public class Partida implements IPartida {
 
         // alt Tipo de Trayectoria
         if (trayectoriaLibre) {
-            
+
             // alt Tipo Movimiento
             if (fichaAMover.getEstado() == EstadoFicha.EN_PASILLO) {
                 // 6: aplicarMovimientoConRebote(ficha: Ficha, valorDado: int)
@@ -596,12 +539,12 @@ public class Partida implements IPartida {
 
             // 11: evaluarCasillaDestino(casillaDestino: Casilla, fichaMoviendose: Ficha)
             // (Asumimos que el tablero evalúa la casilla actual de la ficha)
-            
+
             //String estadoCasilla = tablero.evaluarCasillaDestino(null, fichaAMover); // TODO: Pasar la CasillaDestino real
 
             Casilla casillaDestino = fichaAMover.getCasillaActual();
             String estadoCasilla = tablero.evaluarCasillaDestino(casillaDestino, fichaAMover);
-            
+
             // alt Resultado de Movimiento
             if ("CAPTURA".equals(estadoCasilla)) {
                 // ref Capturar Ficha Rival

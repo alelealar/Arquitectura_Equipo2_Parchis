@@ -121,20 +121,22 @@ public class Tablero {
      * @return El estado de la casilla: "Libre", "Rival" o "Bloqueada".
      */
     public String verificarCasillaSalida(Ficha ficha) {
-        // 1. Usamos el método real de tus compañeros para encontrar la casilla
         CasillaSalida casillaSalida = obtenerCasillaSalida(ficha);
-        
+
         // Si no existe la casilla o tiene una barrera, está bloqueada
-        if (casillaSalida == null || casillaSalida.isHayBarrera()) {
+        if (casillaSalida == null || casillaSalida.isHayBarrera() || casillaSalida.getFichas().size() >= 2) {
             return "Bloqueada";
         }
-        
-        // 2. Verificamos si está ocupada por alguna ficha (Rival)
+
+        //Verificamos si está ocupada por alguna ficha (Rival)
         if (!casillaSalida.getFichas().isEmpty()) {
-            return "Rival";
+            Ficha fichaExistente = casillaSalida.getFichas().get(0);
+            if (!fichaExistente.getJugador().getColor().equals(ficha.getJugador().getColor())) {
+                return "Rival";
+            }
         }
 
-        // 3. Si pasó los filtros anteriores, es una salida normal
+        // Si pasó los filtros anteriores, es una salida normal
         return "Libre";
     }
 
@@ -159,14 +161,22 @@ public class Tablero {
      * @return {@code true} si la trayectoria está libre, {@code false} si se encuentra un bloqueo.
      */
     public boolean verificarTrayectoriaLibre(Ficha ficha, int valorDado) {
+        if (ficha == null) {
+            return false;
+        }
 
-        if(ficha.getEstado() == EstadoFicha.EN_BASE) {
+        if (ficha.getEstado() == EstadoFicha.EN_BASE) {
             if (valorDado == numeroSalidaBase) {
-                return true;
+                String estadoSalida = verificarCasillaSalida(ficha);
+                return !"Bloqueada".equals(estadoSalida);
             }
+            return false;
         }
 
         if (ficha.getEstado() == EstadoFicha.EN_TABLERO) {
+            if (ficha.getCasillaActual() == null || casillas.isEmpty()) {
+                return false;
+            }
 
             int posicionActual = casillas.indexOf(ficha.getCasillaActual());
 
@@ -179,10 +189,12 @@ public class Tablero {
                 }
             }
             return true;
-
         }
 
-        // TODO AGREGAR TODAS LAS VERIFICACIONES O VALIDACIONES PARA QUE LAS FICHAS SE PUEDAN MOVER O INGRESAR A UN PASILLO
+        if (ficha.getEstado() == EstadoFicha.EN_PASILLO) {
+            return true;
+        }
+
         return false;
 
     }
@@ -197,7 +209,11 @@ public class Tablero {
         if (verificarTrayectoriaLibre(ficha, valorDado)) {
             moverFicha(ficha, valorDado);
         } else {
-            System.out.println("El movimiento no es válido: hay una barrera bloqueando el paso.");
+            if (ficha != null && ficha.getEstado() == EstadoFicha.EN_BASE) {
+                System.out.println("El movimiento no es válido: necesitas un " + numeroSalidaBase + " en el dado para salir de la base.");
+            } else {
+                System.out.println("El movimiento no es válido: hay una barrera bloqueando el paso.");
+            }
         }
     }
 
@@ -363,44 +379,6 @@ public class Tablero {
         
         return "NORMAL";
     }
-    /*
-    public void evaluarCasillaDestino(Casilla casillaDestino, Ficha fichaMoviendose) {
-        if (casillaDestino == null || fichaMoviendose == null) return;
-
-        List<Ficha> fichasEnCasilla = casillaDestino.getFichas();
-
-        if (casillaDestino instanceof CasillaMeta) {
-            moverAMeta(fichaMoviendose);
-            fichasEnCasilla.add(fichaMoviendose);
-            return;
-        }
-
-        if (casillaDestino instanceof CasillaSegura || casillaDestino instanceof CasillaSalida) {
-            if (!fichasEnCasilla.isEmpty()) {
-                casillaDestino.setHayBarrera(true);
-            }
-            fichasEnCasilla.add(fichaMoviendose);
-            return;
-        }
-
-        if (casillaDestino instanceof CasillaNormal) {
-            if (fichasEnCasilla.isEmpty()) {
-                fichasEnCasilla.add(fichaMoviendose);
-                return;
-            }
-
-            Ficha fichaExistente = fichasEnCasilla.get(0);
-            if (!fichaExistente.getIdFicha().equals(fichaMoviendose.getIdFicha())) {
-                regresarFichaBase(fichaExistente);
-                fichasEnCasilla.remove(fichaExistente);
-                fichasEnCasilla.add(fichaMoviendose);
-            } else {
-                fichasEnCasilla.add(fichaMoviendose);
-                casillaDestino.setHayBarrera(true);
-            }
-        }
-    }
-    */
 
     /**
      * Actualiza la casilla asignada a la ficha e incrementa en uno el conteo de pasos recorridos.
@@ -441,7 +419,10 @@ public class Tablero {
     private CasillaSalida obtenerCasillaSalida(Ficha ficha) {
         for (Casilla casilla : casillas) {
             if (casilla instanceof CasillaSalida) {
-                return (CasillaSalida) casilla;
+                CasillaSalida salida = (CasillaSalida) casilla;
+                if (salida.getColorAsociado().equals(ficha.getJugador().getColor())) {
+                    return salida;
+                }
             }
         }
         return null;
