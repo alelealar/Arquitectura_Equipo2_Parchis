@@ -48,6 +48,8 @@ public interface IPartida {
     */
    void gestionarSiguienteTurno();
 
+   void verificarPartidaFinalizada();
+
    /**
     * Solicita el desplazamiento de una ficha específica utilizando el valor de dado disponible.
     *
@@ -106,11 +108,6 @@ public interface IPartida {
     * Calcula el puntaje final acumulado por cada jugador y lo guarda en el marcador.
     */
    void calcularYGuardarEnMarcador();
-
-   /**
-    * Verifica si la partida ha concluido para efectuar el cierre del juego y la actualización del marcador.
-    */
-   void verificarFinalizarPartida();
    
    /**
      * Intenta sacar una ficha de la cárcel a la casilla de salida del jugador.

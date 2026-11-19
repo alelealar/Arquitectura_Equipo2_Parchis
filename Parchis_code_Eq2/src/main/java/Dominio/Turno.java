@@ -80,28 +80,6 @@ public class Turno {
         this.lanzamientosPendientes++;
     }
 
-    /**
-     * Registra el valor obtenido tras un tiro de dado, incrementa el historial de tiradas
-     * y evalúa si el jugador gana una tirada adicional (al obtener un 6 sin superar el límite).
-     *
-     * @param valorDado Puntos obtenidos al lanzar el dado.
-     */
-    public void registrarLanzamientoo(int valorDado) {
-        if (lanzamientosRealizados < MAX_LANZAMIENTOS) {
-            this.movimientosPendientes.add(valorDado);
-            this.lanzamientosRealizados++;
-
-            // Regla: Un 6 otorga un tiro extra siempre que no se haya superado el límite de 3
-            if (valorDado == 6 && lanzamientosRealizados < MAX_LANZAMIENTOS) {
-                this.lanzamientosPendientes = 1; // Tiro adicional concedido
-                this.estadoTurno = EstadoTurno.ESPERANDO_DADO;
-            } else {
-                this.lanzamientosPendientes = 0; // Sin lanzamientos pendientes
-                this.estadoTurno = EstadoTurno.EN_MOVIMIENTO;
-            }
-        }
-    }
-
 
     /**
      * Remueve un valor de movimiento pendiente de la lista una vez ejecutado en el tablero.

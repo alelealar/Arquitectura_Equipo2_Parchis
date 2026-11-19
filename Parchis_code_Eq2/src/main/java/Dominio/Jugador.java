@@ -140,8 +140,9 @@ public class Jugador {
 
         for (int i = 0; i < cantidad; i++) {
             Ficha ficha = new Ficha();
-            ficha.setIdFicha((idJugador * 10) + i + 1); 
+            ficha.setIdFicha((idJugador * 10) + i + 1);
             ficha.setEstadoFicha(EstadoFicha.EN_BASE);
+            ficha.setJugador(this);
             fichas.add(ficha);
         }
     }

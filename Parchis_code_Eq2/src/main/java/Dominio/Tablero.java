@@ -1,8 +1,11 @@
 package Dominio;
 
+import ENUM.ColorJugador;
 import ENUM.EstadoFicha;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Representa el tablero principal del juego de Parchís.
@@ -23,25 +26,52 @@ public class Tablero {
     /** Colección de casillas que forman la estructura completa del tablero. */
     private List<Casilla> casillas;
 
-    /**
-     * Constructor por defecto. Inicializa la lista de casillas y establece el
-     * número de salida de base en 5 por defecto.
-     */
     public Tablero() {
-        this.casillas = new ArrayList<>();
-        this.numeroSalidaBase = 5;
+        this(new ConfiguracionPartida());
     }
 
-    /**
-     * Constructor completo para inicializar el tablero con su ID y sus casillas.
-     *
-     * @param idTablero Identificador único del tablero.
-     * @param casillas Lista de casillas que componen el tablero.
-     */
-    public Tablero(Long idTablero, List<Casilla> casillas) {
-        this.idTablero = idTablero;
-        this.casillas = casillas;
-        this.numeroSalidaBase = 5; // TODO ESTO ESTA HARDCODEADO SE TIENE QUE RECIBIR DE ALGUN LUGAR
+    public Tablero(ConfiguracionPartida config) {
+        this.casillas = new ArrayList<>();
+        ConfiguracionPartida cfg = (config != null) ? config : new ConfiguracionPartida();
+        this.numeroSalidaBase = cfg.getValorParaSalirBase();
+        inicializarCasillas(cfg.getCasillasSegurasPorAla(), cfg.getNumCasillaSalidaPorAla());
+    }
+
+    private void inicializarCasillas(int casillasSegurasPorAla, int numCasillaSalidaPorAla) {
+        // limite de casillas seguras
+        int segurasValidas = Math.max(1, Math.min(casillasSegurasPorAla, 8));
+        int posSalidaAla = 5;
+
+        Set<Integer> posicionesSegurasEnAla = new HashSet<>();
+        double intervalo = 17.0 / (segurasValidas + 1);
+        for (int k = 1; k <= segurasValidas; k++) {
+            int posRelativa = (int) Math.round(k * intervalo);
+            if (posRelativa == posSalidaAla) {
+                posRelativa++;
+            }
+            posicionesSegurasEnAla.add(posRelativa);
+        }
+
+        ColorJugador[] coloresPorAla = {
+                ColorJugador.ROJO,
+                ColorJugador.AZUL,
+                ColorJugador.AMARILLO,
+                ColorJugador.VERDE
+        };
+
+        for (int i = 1; i <= 68; i++) {
+            Long id = (long) i;
+            int indiceAla = (i - 1) / 17;
+            int posicionEnAla = ((i - 1) % 17) + 1;
+
+            if (posicionEnAla == posSalidaAla) {
+                casillas.add(new CasillaSalida(id, 2, i, false, coloresPorAla[indiceAla]));
+            } else if (posicionesSegurasEnAla.contains(posicionEnAla)) {
+                casillas.add(new CasillaSegura(id, 2, i, false));
+            } else {
+                casillas.add(new CasillaNormal(id, i, false));
+            }
+        }
     }
 
     /**
@@ -180,7 +210,7 @@ public class Tablero {
 
             int posicionActual = casillas.indexOf(ficha.getCasillaActual());
 
-            for (int i = 1; i < valorDado; i++) {
+            for (int i = 1; i <= valorDado; i++) {
                 int siguientePosicion = (posicionActual + i) % casillas.size();
                 Casilla casillaIntermedia = casillas.get(siguientePosicion);
 
@@ -234,7 +264,9 @@ public class Tablero {
                 ficha.setPasosDados(nuevaPosicion);
             } else if (valorDado == pasosFaltantes) {
                 ficha.setPasosDados(limiteMeta);
-                moverAMeta(ficha);
+                CasillaMeta meta = new CasillaMeta(ficha.getJugador().getColor());
+                ficha.cambiarPosicion(meta);
+                ficha.cambiarEstado(EstadoFicha.EN_META);
             } else {
                 ficha.setPasosDados(ficha.getPasosDados() + valorDado);
             }
@@ -260,10 +292,19 @@ public class Tablero {
                 break;
 
             case EN_TABLERO:
-                Casilla casillaDestino = calcularPosicion(ficha, pasosAvanzar);
-                if (casillaDestino != null) {
-                    actualizarPosicion(ficha, casillaDestino);
-                    evaluarCasillaDestino(casillaDestino, ficha);
+                int pasosTotales = ficha.getPasosDados() + pasosAvanzar;
+                if (pasosTotales > 63) {
+                    int pasosEnPasillo = pasosTotales - 63;
+                    actualizarPosicion(ficha, null);
+                    ficha.cambiarEstado(EstadoFicha.EN_PASILLO);
+                    ficha.setPasosDados(0);
+                    aplicarMovimientoConRebote(ficha, pasosEnPasillo);
+                } else {
+                    Casilla casillaDestino = calcularPosicion(ficha, pasosAvanzar);
+                    if (casillaDestino != null) {
+                        actualizarPosicion(ficha, casillaDestino);
+                        ficha.setPasosDados(pasosTotales);
+                    }
                 }
                 break;
 
@@ -283,18 +324,24 @@ public class Tablero {
      * @param ficha Ficha que abandona la base.
      */
    public void incorporarFichaAlTablero(Ficha ficha) {
-        if (ficha == null) return;
-        CasillaSalida casillaSalida = obtenerCasillaSalida(ficha);
+       if (ficha == null) return;
+       CasillaSalida casillaSalida = obtenerCasillaSalida(ficha);
+       String estadoSalida = verificarCasillaSalida(ficha);
 
-        // Extraemos el texto del estado de la salida
-        String estadoSalida = verificarCasillaSalida(ficha);
+       if (casillaSalida != null && !"Bloqueada".equals(estadoSalida)) {
+           actualizarPosicion(ficha, casillaSalida);
+           ficha.cambiarEstado(EstadoFicha.EN_TABLERO);
 
-        // Si la casilla existe y su estado NO es "Bloqueada"
-        if (casillaSalida != null && !estadoSalida.equals("Bloqueada")) {
-            actualizarPosicion(ficha, casillaSalida);
-            ficha.cambiarEstado(EstadoFicha.EN_TABLERO);
-            casillaSalida.getFichas().add(ficha);
-        }
+           // Si ya había una ficha en la salida y es del mismo color, se forma la barrera
+           if (!casillaSalida.getFichas().isEmpty()) {
+               Ficha existente = casillaSalida.getFichas().get(0);
+               if (existente.getJugador().getColor().equals(ficha.getJugador().getColor())) {
+                   casillaSalida.setHayBarrera(true);
+               }
+           }
+
+           casillaSalida.getFichas().add(ficha);
+       }
     }
 
     /**
@@ -316,6 +363,12 @@ public class Tablero {
      */
     public void regresarFichaBase(Ficha ficha) {
         if (ficha == null) return;
+        if (ficha.getCasillaActual() != null) {
+            ficha.getCasillaActual().getFichas().remove(ficha);
+            if (ficha.getCasillaActual().getFichas().size() < 2) {
+                ficha.getCasillaActual().setHayBarrera(false);
+            }
+        }
         ficha.cambiarEstado(EstadoFicha.EN_BASE);
         ficha.cambiarPosicion(null);
         ficha.setPasosDados(0);
@@ -342,9 +395,8 @@ public class Tablero {
         List<Ficha> fichasEnCasilla = casillaDestino.getFichas();
 
         if (casillaDestino instanceof CasillaMeta) {
-            moverAMeta(fichaMoviendose);
             fichasEnCasilla.add(fichaMoviendose);
-            return "CasillaMeta"; // Le avisamos a Partida que llegó a la meta
+            return "CasillaMeta";
         }
 
         if (casillaDestino instanceof CasillaSegura || casillaDestino instanceof CasillaSalida) {
@@ -362,21 +414,17 @@ public class Tablero {
             }
 
             Ficha fichaExistente = fichasEnCasilla.get(0);
-            
-            // Si la ficha existente es de diferente color/jugador (suponiendo validación por ID)
-            if (!fichaExistente.getIdFicha().equals(fichaMoviendose.getIdFicha())) {
-                regresarFichaBase(fichaExistente);
-                fichasEnCasilla.remove(fichaExistente);
+
+            if (!fichaExistente.getJugador().getColor().equals(fichaMoviendose.getJugador().getColor())) {
                 fichasEnCasilla.add(fichaMoviendose);
-                
-                return "CAPTURA"; // Le avisamos a Partida que hubo una captura
+                return "CAPTURA";
             } else {
                 fichasEnCasilla.add(fichaMoviendose);
                 casillaDestino.setHayBarrera(true);
                 return "NORMAL";
             }
         }
-        
+
         return "NORMAL";
     }
 
@@ -387,9 +435,17 @@ public class Tablero {
      * @param nuevaCasilla Casilla de destino asignada.
      */
     public void actualizarPosicion(Ficha ficha, Casilla nuevaCasilla) {
-        if (ficha == null) return;
+        if (ficha == null)
+            return;
+
+        Casilla casillaAnterior = ficha.getCasillaActual();
+        if (casillaAnterior != null) {
+            casillaAnterior.getFichas().remove(ficha);
+            if (casillaAnterior.getFichas().size() < 2) {
+                casillaAnterior.setHayBarrera(false);
+            }
+        }
         ficha.cambiarPosicion(nuevaCasilla);
-        ficha.setPasosDados(ficha.getPasosDados() + 1);
     }
 
 
@@ -409,6 +465,22 @@ public class Tablero {
         return casillas.get(nuevaPosicion);
     }
 
+    /**
+     * Busca y obtiene una ficha perteneciente a un jugador rival dentro de la casilla especificada.
+     *
+     * @param casilla Casilla en la que se evaluará la presencia de fichas oponentes.
+     * @param fichaAtacante Ficha del jugador en turno que ingresa o cae en la casilla.
+     * @return El objeto {@link Ficha} del rival encontrado, o {@code null} si la casilla no contiene fichas enemigas.
+     */
+    public Ficha obtenerFichaRivalEnCasilla(Casilla casilla, Ficha fichaAtacante) {
+        if (casilla == null || fichaAtacante == null) return null;
+        for (Ficha f : casilla.getFichas()) {
+            if (!f.getJugador().getColor().equals(fichaAtacante.getJugador().getColor())) {
+                return f;
+            }
+        }
+        return null;
+    }
 
     /**
      * Metodo auxiliar privado que busca la casilla de salida en el tablero.

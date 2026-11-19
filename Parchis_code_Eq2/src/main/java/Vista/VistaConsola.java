@@ -1,6 +1,6 @@
 package Vista;
 
-import Controlador.JuegoController;
+import Controlador.ControlPartida;
 import Dominio.Ficha;
 import Dominio.Jugador;
 import ENUM.EstadoFicha;
@@ -12,11 +12,11 @@ import java.util.Scanner;
 public class VistaConsola implements IObserver{
 
     private final IPartida modelo;
-    private final JuegoController controlador;
+    private final ControlPartida controlador;
 
     private final Scanner entrada = new Scanner(System.in);
 
-    public VistaConsola(IPartida modelo, JuegoController controlador) {
+    public VistaConsola(IPartida modelo, ControlPartida controlador) {
         this.controlador = controlador;
         this.modelo = modelo;
     }
