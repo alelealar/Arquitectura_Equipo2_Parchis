@@ -188,7 +188,19 @@ public class Partida implements IPartida {
         if (tablero != null) {
             tablero.regresarFichaBase(fichaRival);
         }
-        aplicarBono(20);
+
+        Ficha fichaCapturadora = (turnoActual != null) ? turnoActual.getUltimaFichaMovida() : null;
+        if (fichaCapturadora != null && tablero != null && tablero.verificarTrayectoriaLibre(fichaCapturadora, 20)) {
+            if (fichaCapturadora.getEstado() == EstadoFicha.EN_PASILLO) {
+                tablero.aplicarMovimientoConRebote(fichaCapturadora, 20);
+            } else {
+                tablero.procesarAvance(fichaCapturadora, 20);
+            }
+        }
+
+        if (turnoActual != null && !turnoActual.tieneAccionesPendientes()) {
+            gestionarSiguienteTurno();
+        }
 
         notificarObservers("CAPTURA_REALIZADA");
     }
@@ -262,11 +274,25 @@ public class Partida implements IPartida {
             tablero.moverAMeta(fichaLlegada);
         }
 
+        evaluarFinPartida();
+        if (this.estadoPartida == EstadoPartida.FINALIZADA) {
+            calcularPosiciones();
+            calcularYGuardarEnMarcador();
+            notificarObservers("PARTIDA_FINALIZADA");
+            return;
+        }
+
         aplicarBono(10);
+        calcularMovimientosDisponibles(10);
 
-        notificarObservers("FICHA_EN_META");
-
-        verificarPartidaFinalizada();
+        if (fichasDisponibles != null && !fichasDisponibles.isEmpty()) {
+            notificarObservers("FICHA_EN_META");
+        } else {
+            if (!turnoActual.tieneAccionesPendientes()) {
+                gestionarSiguienteTurno();
+            }
+            notificarObservers("FICHA_MOVIDA");
+        }
     }
 
     @Override
@@ -338,29 +364,26 @@ public class Partida implements IPartida {
             String resultadoCasilla = tablero.verificarCasillaSalida(fichaElegida);
 
             if ("Bloqueada".equals(resultadoCasilla)) {
-                System.out.println("MODELO: La casilla de salida está bloqueada por una barrera.");
                 notificarObservers("SALIDA_BLOQUEADA");
             } else {
                 tablero.procesarAvance(fichaElegida, this.resultadoDado);
                 turnoActual.aplicarMovimiento(this.resultadoDado);
                 turnoActual.setUltimaFichaMovida(fichaElegida);
 
-                if ("Rival".equals(resultadoCasilla)) {
-                    Casilla casillaSalida = fichaElegida.getCasillaActual();
-                    Ficha fichaRival = tablero.obtenerFichaRivalEnCasilla(casillaSalida, fichaElegida);
-                    if (fichaRival != null) {
-                        aplicarCaptura(fichaRival);
+                Ficha fichaRival = null;
+                if ("Rival".equals(resultadoCasilla) && fichaElegida.getCasillaActual() != null) {
+                    fichaRival = tablero.obtenerFichaRivalEnCasilla(fichaElegida.getCasillaActual(), fichaElegida);
+                }
+
+                if (fichaRival != null) {
+                    aplicarCaptura(fichaRival);
+                } else {
+                    if (!turnoActual.tieneAccionesPendientes()) {
+                        gestionarSiguienteTurno();
                     }
+                    notificarObservers("FICHA_INCORPORADA");
                 }
-
-                if (!turnoActual.tieneAccionesPendientes()) {
-                    gestionarSiguienteTurno();
-                }
-
-                notificarObservers("FICHA_INCORPORADA");
             }
-        } else {
-            System.out.println("MODELO: Movimiento inválido. La ficha " + idFicha + " no existe o ya no está en la base.");
         }
     }
 
