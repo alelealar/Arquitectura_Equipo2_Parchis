@@ -1,0 +1,23 @@
+# Salidas de compilación (en cualquier módulo)
+**/target/
+dist/
+dependency-reduced-pom.xml
+
+# IntelliJ
+.idea/
+*.iml
+
+# NetBeans
+nbproject/private/
+nbactions*.xml
+nb-configuration.xml
+
+# VS Code / Eclipse
+.vscode/
+.settings/
+.classpath
+.project
+
+# Sistema operativo
+Thumbs.db
+.DS_Store

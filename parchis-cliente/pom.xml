@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    ParchisCliente.jar (ejecutable). Depende SOLO de parchis-comunes.
+    NUNCA agregar parchis-servidor como dependencia: el cliente arranca el
+    servidor como proceso aparte (ver paquete servidorlocal).
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.eq2</groupId>
+        <artifactId>parchis</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>parchis-cliente</artifactId>
+    <packaging>jar</packaging>
+    <name>Parchis - Cliente</name>
+
+    <properties>
+        <exec.mainClass>com.eq2.parchis.cliente.ClienteMain</exec.mainClass>
+        <parchis.ejecutable>ParchisCliente</parchis.ejecutable>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.eq2</groupId>
+            <artifactId>parchis-comunes</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

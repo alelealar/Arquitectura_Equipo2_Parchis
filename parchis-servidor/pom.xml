@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    ParchisServidor.jar (ejecutable). Depende SOLO de parchis-comunes.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.eq2</groupId>
+        <artifactId>parchis</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>parchis-servidor</artifactId>
+    <packaging>jar</packaging>
+    <name>Parchis - Servidor</name>
+
+    <properties>
+        <!-- Clase main: la usan el botón "Run" del IDE y el manifest del .jar -->
+        <exec.mainClass>com.eq2.parchis.servidor.ServidorMain</exec.mainClass>
+        <parchis.ejecutable>ParchisServidor</parchis.ejecutable>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.eq2</groupId>
+            <artifactId>parchis-comunes</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
