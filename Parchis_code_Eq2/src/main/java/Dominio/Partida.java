@@ -91,6 +91,9 @@ public class Partida implements IPartida {
         }
 
         this.fichasDisponibles = new LinkedList<>();
+        if (this.ordenJugadores.size() == 4) {
+            iniciarPartida();
+        }
     }
 
     public Partida(Long idPartida) {
@@ -456,6 +459,74 @@ public class Partida implements IPartida {
         } else {
             notificarObservers("BLOQUEO_BARRERA");
         }
+    }
+
+    public void confirmarInicioJugador(Long idJugador, boolean listo){
+        for(Jugador j: ordenJugadores){
+            if (Objects.equals(j.getIdJugador(), idJugador)) {
+                j.setListo(listo);
+                verificarTodosListos();
+            }
+        }
+
+        int cont = 0;
+        for (Jugador j : ordenJugadores) {
+            if (j.isListo()) {
+                cont++;
+            }
+        }
+        this.votosInicio = cont;
+
+        if (verificarTodosListos()) {
+            iniciarPartida();
+        } else {
+            notificarObservers("JUGADOR_LISTO");
+        }
+    }
+
+    public boolean verificarTodosListos() {
+        if (ordenJugadores.size() < 2) {
+            return false;
+        }
+
+        if (ordenJugadores.size() == 4) {
+            for (Jugador j : ordenJugadores) {
+                j.setListo(true);
+            }
+            this.votosInicio = 4;
+            return true;
+        }
+
+        for (Jugador j : ordenJugadores) {
+            if (!j.isListo()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public void iniciarPartida(){
+        if(verificarTodosListos()){
+            Collections.shuffle(ordenJugadores);
+        }
+
+        for (Jugador jugador : ordenJugadores) {
+            if (jugador.getFichas() != null) {
+                for (Ficha ficha : jugador.getFichas()) {
+                    ficha.setEstadoFicha(EstadoFicha.EN_BASE);
+                    ficha.setCasillaActual(null);
+                }
+            }
+        }
+
+        //asignamos turno al primer jugador de la lista
+        this.indiceJugadorActual = 0;
+        Jugador primerJugador = ordenJugadores.get(indiceJugadorActual);
+        this.turnoActual = new Turno(primerJugador);
+
+        this.estadoPartida = EstadoPartida.EN_CURSO;
+
+        notificarObservers("PARTIDA_INICIADA");
     }
 
     public Long getIdPartida() {

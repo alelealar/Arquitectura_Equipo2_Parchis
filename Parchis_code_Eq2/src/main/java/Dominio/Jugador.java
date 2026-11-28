@@ -31,6 +31,11 @@ public class Jugador {
      * Avatar que el jugador seleccione para representarlo  
      */
     private String avatar;
+
+    /**
+     * Decision de si el jugador esta listo para jugar o no
+     */
+    private boolean listo;
     
     /**
      * Las fichas que le corresponden al jugador para jugar la partida
@@ -128,7 +133,15 @@ public class Jugador {
     public List<Ficha> getFichas() {
         return fichas;
     }
-    
+
+    public boolean isListo() {
+        return listo;
+    }
+
+    public void setListo(boolean listo) {
+        this.listo = listo;
+    }
+
     /**
      * Crea las fichas que pertenecen al jugador.
      * Metodo que se utilizara en configurar partida, al momento que el anfitrion seleccione

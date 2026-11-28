@@ -1,5 +1,6 @@
 package Vista;
 
+import Controlador.ControlInicioPartida;
 import Controlador.ControlPartida;
 import Dominio.Casilla;
 import Dominio.CasillaSalida;
@@ -9,6 +10,7 @@ import Dominio.Jugador;
 import Dominio.Partida;
 import ENUM.ColorJugador;
 import ENUM.EstadoFicha;
+import ENUM.EstadoPartida;
 import Modelo.IObserver;
 import Modelo.IPartida;
 
@@ -30,6 +32,7 @@ public class VistaJuego extends JFrame implements IObserver {
 
     private Partida modelo;
     private ControlPartida controlador;
+    private final Map<Long, ControlInicioPartida> controladoresInicio = new HashMap<>();
 
     private JButton btnLanzarDado;
     private JButton btnMoverFicha;
@@ -41,9 +44,13 @@ public class VistaJuego extends JFrame implements IObserver {
 
     private final Map<Ficha, Point> posicionesFichasPantalla = new HashMap<>();
     private final Map<ColorJugador, Color> paletaVisual = new HashMap<>();
+    private final Map<Long, Rectangle> boundsBotonesListo = new HashMap<>();
+    private final List<Jugador> ordenVisualLlegada = new ArrayList<>();
     private Rectangle boundsDado;
 
     private boolean mostrarSeleccionFichas = false;
+    private int segundosCuentaRegresiva = 0;
+    private Timer timerCuentaRegresiva;
 
     public VistaJuego() {
         inicializarPaletaPorDefecto();
@@ -53,9 +60,19 @@ public class VistaJuego extends JFrame implements IObserver {
     public VistaJuego(IPartida modelo) {
         if (modelo instanceof Partida) {
             this.modelo = (Partida) modelo;
+            sincronizarOrdenLlegada();
         }
         inicializarPaletaPorDefecto();
         configurarVentana();
+    }
+
+    private void sincronizarOrdenLlegada() {
+        if (modelo == null || modelo.getOrdenJugadores() == null) return;
+        for (Jugador j : modelo.getOrdenJugadores()) {
+            if (!ordenVisualLlegada.contains(j)) {
+                ordenVisualLlegada.add(j);
+            }
+        }
     }
 
     private void inicializarPaletaPorDefecto() {
@@ -76,11 +93,18 @@ public class VistaJuego extends JFrame implements IObserver {
 
     public void setModelo(Partida modelo) {
         this.modelo = modelo;
+        sincronizarOrdenLlegada();
         repaint();
     }
 
     public void setControlador(ControlPartida controlador) {
         this.controlador = controlador;
+    }
+
+    public void registrarControladorInicio(ControlInicioPartida ctrl) {
+        if (ctrl != null && ctrl.getIdJugadorLocal() != null) {
+            this.controladoresInicio.put(ctrl.getIdJugadorLocal(), ctrl);
+        }
     }
 
     private void configurarVentana() {
@@ -95,7 +119,7 @@ public class VistaJuego extends JFrame implements IObserver {
         txtIdFicha = new JTextField();
         lblResultado = new JLabel("Dado: -");
         lblTurno = new JLabel("Turno: Esperando...");
-        lblMensaje = new JLabel("Haz clic en el dado para comenzar");
+        lblMensaje = new JLabel("Esperando a que los jugadores confirmen...");
 
         panelTablero = new PanelTablero();
         setContentPane(panelTablero);
@@ -113,8 +137,35 @@ public class VistaJuego extends JFrame implements IObserver {
         return txtIdFicha.getText();
     }
 
+    private void iniciarCuentaRegresiva() {
+        if (timerCuentaRegresiva != null && timerCuentaRegresiva.isRunning()) {
+            timerCuentaRegresiva.stop();
+        }
+        segundosCuentaRegresiva = 3;
+        if (panelTablero != null) {
+            panelTablero.repaint();
+        }
+
+        timerCuentaRegresiva = new Timer(1000, e -> {
+            segundosCuentaRegresiva--;
+            if (segundosCuentaRegresiva <= 0) {
+                segundosCuentaRegresiva = 0;
+                timerCuentaRegresiva.stop();
+                if (modelo != null && modelo.getTurnoActual() != null && modelo.getTurnoActual().getJugadorActual() != null) {
+                    lblMensaje.setText("¡Comienza el juego! Turno de " + modelo.getTurnoActual().getJugadorActual().getNombre());
+                }
+            }
+            if (panelTablero != null) {
+                panelTablero.repaint();
+            }
+        });
+        timerCuentaRegresiva.start();
+    }
+
     @Override
     public void actualizar(String evento) {
+        sincronizarOrdenLlegada();
+
         if (modelo != null) {
             lblResultado.setText("Dado: " + modelo.getResultadoDado());
             if (modelo.getTurnoActual() != null && modelo.getTurnoActual().getJugadorActual() != null) {
@@ -123,6 +174,24 @@ public class VistaJuego extends JFrame implements IObserver {
         }
 
         switch (evento) {
+            case "JUGADOR_UNIDO":
+            case "JUGADOR_LISTO":
+                mostrarSeleccionFichas = false;
+                if (modelo != null && modelo.getOrdenJugadores() != null) {
+                    lblTurno.setText("Sala de Espera (" + modelo.getVotosInicio() + "/" + modelo.getOrdenJugadores().size() + ")");
+                }
+                lblMensaje.setText("Esperando a que todos los jugadores presionen Listo...");
+                break;
+            case "PARTIDA_INICIADA":
+                mostrarSeleccionFichas = false;
+                if (modelo != null && modelo.getTurnoActual() != null && modelo.getTurnoActual().getJugadorActual() != null) {
+                    lblTurno.setText("Turno: " + modelo.getTurnoActual().getJugadorActual().getNombre());
+                    lblMensaje.setText("Orden sorteado. Iniciando partida...");
+                } else {
+                    lblMensaje.setText("¡Partida iniciada!");
+                }
+                iniciarCuentaRegresiva();
+                break;
             case "INICIO":
                 mostrarSeleccionFichas = false;
                 lblMensaje.setText("Haz clic en el dado junto a tu avatar para comenzar.");
@@ -259,6 +328,32 @@ public class VistaJuego extends JFrame implements IObserver {
 
         private void manejarClicPantalla(Point p) {
             if (modelo == null) return;
+
+            if (modelo.getEstadoPartida() == EstadoPartida.EN_ESPERA) {
+                for (Map.Entry<Long, Rectangle> entry : boundsBotonesListo.entrySet()) {
+                    if (entry.getValue().contains(p)) {
+                        Long idJugador = entry.getKey();
+                        Jugador jugador = modelo.getOrdenJugadores().stream()
+                                .filter(j -> j.getIdJugador() != null && j.getIdJugador().equals(idJugador))
+                                .findFirst()
+                                .orElse(null);
+
+                        if (jugador != null) {
+                            boolean nuevoEstado = !jugador.isListo();
+                            ControlInicioPartida ctrl = controladoresInicio.get(idJugador);
+                            if (ctrl != null) {
+                                ctrl.confirmarInicio(nuevoEstado);
+                            } else {
+                                modelo.confirmarInicioJugador(idJugador, nuevoEstado);
+                            }
+                        }
+                        return;
+                    }
+                }
+                return;
+            }
+
+            if (segundosCuentaRegresiva > 0) return;
 
             if (boundsDado != null && boundsDado.contains(p)) {
                 btnLanzarDado.doClick();
@@ -484,6 +579,41 @@ public class VistaJuego extends JFrame implements IObserver {
             dibujarJugadoresLaterales(g2, w, h);
             dibujarDadoYEstado(g2, w, h);
             dibujarFichas(g2);
+
+            if (segundosCuentaRegresiva > 0) {
+                dibujarOverlayCuentaRegresiva(g2, boardX, boardY, boardSize);
+            }
+        }
+
+        private void dibujarOverlayCuentaRegresiva(Graphics2D g2, int boardX, int boardY, int boardSize) {
+            int cx = boardX + boardSize / 2;
+            int cy = boardY + boardSize / 2;
+
+            g2.setColor(new Color(10, 22, 45, 175));
+            g2.fillRoundRect(cx - 145, cy - 110, 290, 220, 32, 32);
+
+            g2.setColor(new Color(255, 215, 0));
+            g2.setStroke(new BasicStroke(3.5f));
+            g2.drawRoundRect(cx - 145, cy - 110, 290, 220, 32, 32);
+            g2.setStroke(new BasicStroke(1f));
+
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 18));
+            String titulo = "INICIANDO PARTIDA";
+            FontMetrics fmTit = g2.getFontMetrics();
+            g2.drawString(titulo, cx - fmTit.stringWidth(titulo) / 2, cy - 58);
+
+            g2.setColor(new Color(72, 229, 154));
+            g2.setFont(new Font("SansSerif", Font.BOLD, 88));
+            String num = String.valueOf(segundosCuentaRegresiva);
+            FontMetrics fmNum = g2.getFontMetrics();
+            g2.drawString(num, cx - fmNum.stringWidth(num) / 2, cy + 32);
+
+            g2.setColor(new Color(220, 230, 245));
+            g2.setFont(new Font("SansSerif", Font.PLAIN, 14));
+            String sub = "¡Prepárate!";
+            FontMetrics fmSub = g2.getFontMetrics();
+            g2.drawString(sub, cx - fmSub.stringWidth(sub) / 2, cy + 78);
         }
 
         private void dibujarBaseEsquina(Graphics2D g2, int x, int y, int size, Color color) {
@@ -533,39 +663,63 @@ public class VistaJuego extends JFrame implements IObserver {
             g2.drawLine(x + size, y, x, y + size);
         }
 
-        private void dibujarJugadoresLaterales(Graphics2D g2, int w, int h) {
-            Map<ColorJugador, String> nombres = new HashMap<>();
-            nombres.put(ColorJugador.AMARILLO, "Usuario A");
-            nombres.put(ColorJugador.AZUL, "Usuario B");
-            nombres.put(ColorJugador.ROJO, "Usuario C");
-            nombres.put(ColorJugador.VERDE, "Usuario D");
-
-            if (modelo != null && modelo.getOrdenJugadores() != null) {
-                for (Jugador j : modelo.getOrdenJugadores()) {
-                    nombres.put(j.getColor(), j.getNombre());
-                }
+        private Point obtenerPosicionPorColor(ColorJugador color, int w, int h) {
+            if (color == null) return new Point(135, 110);
+            switch (color) {
+                case AMARILLO: // Superior izquierda
+                    return new Point(135, 110);
+                case AZUL:     // Superior derecha
+                    return new Point(w - 215, 110);
+                case VERDE:    // Inferior izquierda
+                    return new Point(135, h - 220);
+                case ROJO:     // Inferior derecha
+                default:
+                    return new Point(w - 215, h - 220);
             }
+        }
+
+        private void dibujarJugadoresLaterales(Graphics2D g2, int w, int h) {
+            boundsBotonesListo.clear();
+            sincronizarOrdenLlegada();
+
+            if (ordenVisualLlegada.isEmpty()) return;
 
             Jugador activo = (modelo != null && modelo.getTurnoActual() != null)
                     ? modelo.getTurnoActual().getJugadorActual() : null;
+            boolean enEspera = (modelo != null && modelo.getEstadoPartida() == EstadoPartida.EN_ESPERA);
 
-            dibujarAvatarJugador(g2, 135, 110, nombres.get(ColorJugador.AMARILLO), Color.ORANGE,
-                    activo != null && activo.getColor() == ColorJugador.AMARILLO);
-            dibujarAvatarJugador(g2, w - 215, 110, nombres.get(ColorJugador.AZUL), new Color(186, 45, 212),
-                    activo != null && activo.getColor() == ColorJugador.AZUL);
-            dibujarAvatarJugador(g2, w - 215, h - 220, nombres.get(ColorJugador.ROJO), Color.GREEN,
-                    activo != null && activo.getColor() == ColorJugador.ROJO);
-            dibujarAvatarJugador(g2, 135, h - 220, nombres.get(ColorJugador.VERDE), new Color(255, 38, 146),
-                    activo != null && activo.getColor() == ColorJugador.VERDE);
+            for (int slot = 0; slot < ordenVisualLlegada.size() && slot < 4; slot++) {
+                Jugador jugador = ordenVisualLlegada.get(slot);
+                if (jugador == null) continue;
+
+                Point pos = obtenerPosicionPorColor(jugador.getColor(), w, h);
+                Color colorSprite = obtenerColorAwt(jugador.getColor());
+                boolean enTurno = !enEspera && segundosCuentaRegresiva == 0 && activo != null && activo.equals(jugador);
+                boolean esAnfitrion = (slot == 0);
+
+                int ordenTurno = -1;
+                if (!enEspera && modelo != null && modelo.getOrdenJugadores() != null) {
+                    int idx = modelo.getOrdenJugadores().indexOf(jugador);
+                    if (idx >= 0) {
+                        ordenTurno = idx + 1;
+                    }
+                }
+
+                dibujarAvatarJugador(g2, pos.x, pos.y, jugador, colorSprite, enTurno, enEspera, esAnfitrion, ordenTurno);
+            }
         }
 
-        private void dibujarAvatarJugador(Graphics2D g2, int x, int y, String nombre, Color colorSprite, boolean enTurno) {
+        private void dibujarAvatarJugador(Graphics2D g2, int x, int y, Jugador jugador,
+                                          Color colorSprite, boolean enTurno, boolean enEspera,
+                                          boolean esAnfitrion, int ordenTurno) {
+            String nombre = jugador.getNombre();
+
             if (enTurno) {
                 g2.setColor(new Color(255, 255, 255, 90));
-                g2.fillRoundRect(x - 15, y - 15, 110, 130, 20, 20);
+                g2.fillRoundRect(x - 15, y - 15, 110, 145, 20, 20);
                 g2.setColor(Color.YELLOW);
                 g2.setStroke(new BasicStroke(3));
-                g2.drawRoundRect(x - 15, y - 15, 110, 130, 20, 20);
+                g2.drawRoundRect(x - 15, y - 15, 110, 145, 20, 20);
                 g2.setStroke(new BasicStroke(1));
             }
 
@@ -580,39 +734,96 @@ public class VistaJuego extends JFrame implements IObserver {
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("SansSerif", Font.BOLD, 15));
             FontMetrics fm = g2.getFontMetrics();
-            g2.drawString(nombre, x + 40 - fm.stringWidth(nombre) / 2, y + 90);
+            g2.drawString(nombre, x + 40 - fm.stringWidth(nombre) / 2, y + 88);
+
+            if (esAnfitrion && enEspera) {
+                g2.setColor(new Color(255, 230, 100));
+                g2.setFont(new Font("SansSerif", Font.BOLD, 10));
+                String tag = "ANFITRIÓN";
+                FontMetrics fmTag = g2.getFontMetrics();
+                g2.drawString(tag, x + 40 - fmTag.stringWidth(tag) / 2, y + 4);
+            }
+
+            if (enEspera && jugador.getIdJugador() != null) {
+                boolean listo = jugador.isListo();
+                Rectangle btnRect = new Rectangle(x - 10, y + 98, 100, 26);
+                boundsBotonesListo.put(jugador.getIdJugador(), btnRect);
+
+                g2.setColor(listo ? new Color(46, 160, 67) : new Color(230, 140, 0));
+                g2.fillRoundRect(btnRect.x, btnRect.y, btnRect.width, btnRect.height, 12, 12);
+                g2.setColor(Color.WHITE);
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawRoundRect(btnRect.x, btnRect.y, btnRect.width, btnRect.height, 12, 12);
+                g2.setStroke(new BasicStroke(1f));
+
+                String textoBtn = listo ? "LISTO ✓" : "MARCAR LISTO";
+                g2.setFont(new Font("SansSerif", Font.BOLD, 11));
+                FontMetrics fmBtn = g2.getFontMetrics();
+                g2.drawString(textoBtn,
+                        btnRect.x + (btnRect.width - fmBtn.stringWidth(textoBtn)) / 2,
+                        btnRect.y + 17);
+            } else if (!enEspera && ordenTurno > 0) {
+                Rectangle badgeRect = new Rectangle(x - 2, y + 98, 84, 22);
+                g2.setColor(new Color(15, 30, 60, 190));
+                g2.fillRoundRect(badgeRect.x, badgeRect.y, badgeRect.width, badgeRect.height, 11, 11);
+                g2.setColor(enTurno ? Color.YELLOW : new Color(200, 220, 255));
+                g2.setStroke(new BasicStroke(1.2f));
+                g2.drawRoundRect(badgeRect.x, badgeRect.y, badgeRect.width, badgeRect.height, 11, 11);
+                g2.setStroke(new BasicStroke(1f));
+
+                String textoOrden = "Turno #" + ordenTurno;
+                g2.setFont(new Font("SansSerif", Font.BOLD, 11));
+                FontMetrics fmOrd = g2.getFontMetrics();
+                g2.drawString(textoOrden,
+                        badgeRect.x + (badgeRect.width - fmOrd.stringWidth(textoOrden)) / 2,
+                        badgeRect.y + 15);
+            }
         }
 
         private void dibujarDadoYEstado(Graphics2D g2, int w, int h) {
-            ColorJugador colorTurno = ColorJugador.AMARILLO;
-            boolean debeTirarDado = false;
-            boolean esPrimerTiroTurno = true;
+            boolean enEspera = (modelo == null || modelo.getEstadoPartida() == EstadoPartida.EN_ESPERA);
 
-            if (modelo != null && modelo.getTurnoActual() != null) {
-                if (modelo.getTurnoActual().getJugadorActual() != null) {
-                    colorTurno = modelo.getTurnoActual().getJugadorActual().getColor();
-                }
-                debeTirarDado = modelo.getTurnoActual().getLanzamientosPendientes() > 0;
-                esPrimerTiroTurno = modelo.getTurnoActual().getLanzamientosRealizados() == 0;
+            // Barra inferior de estado siempre visible
+            g2.setColor(new Color(0, 0, 0, 140));
+            g2.fillRoundRect(280, 702, 660, 34, 12, 12);
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 13));
+            g2.drawString(lblTurno.getText() + "  |  " + lblMensaje.getText(), 295, 724);
+
+            // El dado no aparece hasta que la partida inicie y termine el contador
+            if (enEspera || segundosCuentaRegresiva > 0) {
+                boundsDado = null;
+                return;
             }
+
+            Jugador jugadorTurno = (modelo.getTurnoActual() != null)
+                    ? modelo.getTurnoActual().getJugadorActual() : null;
+            boolean debeTirarDado = (modelo.getTurnoActual() != null)
+                    && modelo.getTurnoActual().getLanzamientosPendientes() > 0;
+            boolean esPrimerTiroTurno = (modelo.getTurnoActual() != null)
+                    && modelo.getTurnoActual().getLanzamientosRealizados() == 0;
+
+            ColorJugador colorTurno = (jugadorTurno != null && jugadorTurno.getColor() != null)
+                    ? jugadorTurno.getColor() : ColorJugador.AMARILLO;
 
             int dadoX = 35;
             int dadoY = 105;
             switch (colorTurno) {
-                case AMARILLO:
+                case AMARILLO: // Superior izquierda
                     dadoX = 35;
                     dadoY = 105;
                     break;
-                case AZUL:
+                case AZUL:     // Superior derecha
                     dadoX = w - 110;
                     dadoY = 105;
                     break;
-                case ROJO:
-                    dadoX = w - 110;
+                case VERDE:    // Inferior izquierda
+                    dadoX = 35;
                     dadoY = h - 225;
                     break;
-                case VERDE:
-                    dadoX = 35;
+                case ROJO:     // Inferior derecha
+                default:
+                    dadoX = w - 110;
                     dadoY = h - 225;
                     break;
             }
@@ -649,7 +860,7 @@ public class VistaJuego extends JFrame implements IObserver {
             if (debeTirarDado && esPrimerTiroTurno) {
                 dibujarSimboloTirar(g2, dadoX, dadoY, tam);
             } else {
-                int valor = (modelo != null) ? modelo.getResultadoDado() : 5;
+                int valor = modelo.getResultadoDado();
                 dibujarPuntosDado(g2, dadoX, dadoY, tam, valor);
             }
 
@@ -658,12 +869,6 @@ public class VistaJuego extends JFrame implements IObserver {
             String textoDado = debeTirarDado ? (esPrimerTiroTurno ? "TIRAR" : "TIRO EXTRA") : "DADO";
             FontMetrics fmTxt = g2.getFontMetrics();
             g2.drawString(textoDado, dadoX + (tam - fmTxt.stringWidth(textoDado)) / 2, dadoY + tam + 17);
-
-            g2.setColor(new Color(0, 0, 0, 140));
-            g2.fillRoundRect(280, 702, 660, 34, 12, 12);
-            g2.setColor(Color.WHITE);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 13));
-            g2.drawString(lblTurno.getText() + "  |  " + lblMensaje.getText(), 295, 724);
         }
 
         private void dibujarSimboloTirar(Graphics2D g2, int x, int y, int tam) {

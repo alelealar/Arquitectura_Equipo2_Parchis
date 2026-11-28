@@ -2,7 +2,6 @@ package Modelo;
 
 import Dominio.Ficha;
 import Dominio.Turno;
-import Vista.VistaJuego;
 
 import java.util.List;
 
@@ -113,6 +112,12 @@ public interface IPartida {
      * Intenta sacar una ficha de la cárcel a la casilla de salida del jugador.
      */
    void incorporarFichaATablero(Long idFicha);
+
+   void confirmarInicioJugador(Long idJugador, boolean listo);
+
+   boolean verificarTodosListos();
+
+   void iniciarPartida();
 
    Turno getTurnoActual();
 
